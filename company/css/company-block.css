@@ -1,0 +1,16 @@
+.block-intra_company > h2 {
+	overflow:hidden;
+}
+.block-intra_company .ui-accordion .ui-accordion-content {
+	padding:1em;
+	font-size:80%;
+}
+
+.block-intra_company ul {
+	padding:0;
+	list-style:none outside none !important;
+}
+
+.block-intra_company .vcard.details > .View-Image-Container {
+	margin-right:0;
+}

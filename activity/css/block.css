@@ -1,0 +1,46 @@
+
+.block dialog.activity {
+}
+
+.block dialog.activity .row {
+	display:table-cell;
+	float:left;
+	width: 24%;
+	margin:0.5%;
+	
+}
+
+.block dialog.activity .row:nth-child(4n+1) {
+	clear:left;
+}
+
+.block dialog.activity .row > * {
+	vertical-align:top;
+}
+
+.block dialog.activity .contact {
+	float:left;
+}
+
+.block dialog.activity .info {
+	font-size:80%;
+	display:block;
+	clear:both;
+}
+
+.block dialog.activity .info > * {
+	display: inline;
+}
+
+.block dialog.activity .info > * ~ *:before {
+	content: "|";
+}
+
+
+.block dialog.activity .info time .date {
+	display:none;
+}
+.block dialog.activity .info time:after {
+	display:inline;
+	content: attr(title);
+}

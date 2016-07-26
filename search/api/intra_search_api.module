@@ -1,0 +1,498 @@
+<?php
+/**
+ * @file
+ *   Base module for TerraINTRA searching.
+ *   Provides common functions for searching objects from
+ *   TerraINTRA. By itself doesn't do much.
+ * @todo
+ *   - Remove manual stemming step. It is performed by search_simplify
+ */
+
+/**
+ * @addtogroup Constants
+ *
+ * Bitmask for defining magicality of search.
+ *
+ * @{
+ */
+
+define('INTRA_SEARCH_MAGIC_LIKE', 1);	/** Use wildcard (%) for searching */
+define('INTRA_SEARCH_MAGIC_ABBR', 2);	/** Detect abbrevations **/
+define('INTRA_SEARCH_MAGIC_SYNS', 4);	/** Try looking up synonyms **/
+define('INTRA_SEARCH_MAGIC_STEM', 8);	/** Stem words **/
+
+define('INTRA_SEARCH_MAGIC_NONE', 0);	/** No magicality at all */
+define('INTRA_SEARCH_MAGIC',
+	INTRA_SEARCH_MAGIC_LIKE |
+	INTRA_SEARCH_MAGIC_ABBR |
+	INTRA_SEARCH_MAGIC_STEM
+);										/** Normal magic level **/
+define('INTRA_SEARCH_MAGIC_MORE',
+	INTRA_SEARCH_MAGIC |
+	INTRA_SEARCH_MAGIC_SYNS
+);										/** Extended magicality **/
+
+/**
+ * @} End of "Constants"
+ */
+
+/**
+ * Hook for drupal menu.
+ */
+function intra_search_api_menu() {
+	$items = array();
+	$items['admin/settings/intra/search/api'] = array(
+		'title'				=> 'Intra Search',
+		'description'		=> 'Settings for Intra Search',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_search_api_admin_settings'),
+		'access arguments'	=> array('administer site configuration'),
+		'file'				=> 'inc/admin.pages.inc',
+		'type'				=> MENU_LOCAL_TASK
+	);
+
+	return $items;
+}
+
+/**
+ * Build filter instance from query.
+ * @todo OR and subqueries not implemented. Depends on Intra_Filter improvements.
+ * @see http://api.drupal.org/api/function/search_parse_query/6
+ */
+/// TODO
+function intra_search_api_parse_query($text) {
+	$keys = array('positive' => array(), 'negative' => array());
+	preg_match_all('/ (-?)("[^"]+"|[^" ]+)/i', ' '. $text, $matches, PREG_SET_ORDER);
+
+	if (count($matches) < 1) {
+		return NULL;
+	}
+
+	// Classify tokens
+	$or = FALSE;
+	$warning = '';
+	$simple = TRUE;
+
+	foreach($matches as $match) {
+		$phrase = FALSE;
+
+		if ($match[2]{0} == '"') {
+			$match[2] = substr($match[2], 1, -1);
+			$phrase = TRUE;
+			$simple = FALSE;
+		}
+
+		// Simplify keyword according to indexing rules and external preprocessors
+		$words = search_simplify($match[2]);
+
+		$words = $phrase ? array($words) : preg_split('/ /', $words, -1, PREG_SPLIT_NO_EMPTY);
+		// Negative matches
+		if ($match[1] == '-') {
+			$keys['negative'] = array_merge($keys['negative'], $words);
+		}
+
+		// OR operator: instead of a single keyword, we store an array of all
+		// OR'd keywords.
+		elseif ($match[2] == 'OR' && count($keys['positive'])) {
+
+			/// TODO implement or
+			drupal_set_message('warning', t('OR\'ing not implemented.'));
+
+			$last = array_pop($keys['positive']);
+			// Starting a new OR?
+			if (!is_array($last)) {
+				$last = array($last);
+			}
+			$keys['positive'][] = $last;
+			$or = TRUE;
+			continue;
+		}
+		// AND operator: implied, so just ignore it
+		elseif ($match[2] == 'AND' || $match[2] == 'and') {
+			$warning = $match[2];
+			continue;
+		}
+		// Plain keyword
+		else {
+			if ($match[2] == 'or') {
+				$warning = $match[2];
+			}
+			if ($or) {
+				// Add to last element (which is an array)
+				$keys['positive'][count($keys['positive']) - 1] = array_merge($keys['positive'][count($keys['positive']) - 1], $words);
+			}
+			else {
+				$keys['positive'] = array_merge($keys['positive'], $words);
+			}
+		}
+		$or = FALSE;
+	}
+
+	// Now the intra part
+	// Instead of returning array for query, return Intra_Filter
+	$filter = new Intra_Filter();
+
+	foreach ($keys['positive'] as $key) {
+		//$filter
+		list($type, $key, $val) = _intra_search_api_parse_query($filter, $key, true);
+		$filter->addRule($type, $key, $val);
+	}
+
+	dfb($keys);
+}
+
+/// TODO
+function _intra_search_api_parse_query(&$filter, &$word, $not = FALSE) {
+	$split = explode(' ', $word);
+	foreach ($split as $s) {
+		$num = is_numeric($s);
+		if ($num || drupal_strlen($s) >= variable_get('minimum_word_size', 3)) {
+
+			if(preg_match('/^[A-Zota]+$/', $word)) {
+				$regexp = '';
+				$split = '(^|[[:space:]]|[[:punct:]])+';
+				// Compile regexp
+				foreach(str_split($keys) as $char) {
+					$_reg = '';
+					switch($char) {
+						case 'a' :
+							$_reg = "{$split}and";
+							break;
+						case 't' :
+							$_reg = "{$split}the";
+							break;
+						case 'o' :
+							$_reg = "{$split}of";
+							break;
+						default:
+							$_char = quotemeta($char);
+							$_reg = "({$_char}|{$split}({$_char}[[:alnum:]]+|{$_char}))";
+					}
+					$regexp .= "($_reg)";
+				}
+
+				$regexp .= '($|[[:space:]]|[[:punct:]])';
+
+				$filter->whereRegexp('c_cname', $regexp);
+				$filter->whereLike('c_oldname', $query);
+			}
+
+		}
+	}
+}
+
+/**
+ * Try detecting scope by looking up common patterns
+ */
+function intra_search_api_detectscope($keyword) {
+	if(valid_email_address($keyword)) return 'email';
+	return '';
+}
+
+/**
+ * Split string into words array.
+ * @param $string
+ *   String to split
+ * @return Array
+ *   Array where key is original word, and value is sub-
+ *   array to be populated with variations.
+ */
+function intra_search_api_splitwords($string) {
+	$words = array();
+	$string = trim($string);
+	$_words = preg_split('/([[:space:]]+)/', $string);
+
+	foreach($_words as $word) {
+		$word = drupal_strtolower($word);
+		$words[$word] = array(
+			$word,
+			search_simplify($word)
+		);
+	}
+
+	return $words;
+}
+
+/**
+ * Process words thru different synonym providers.
+ * @param $words Array
+ *   Array of words, provided by intra_search_api_splitwords()
+ * @param $magic Int
+ *   Magicality level. See:
+ *    - INTRA_SEARCH_MAGIC_NONE
+ *    - INTRA_SEARCH_MAGIC
+ *    - INTRA_SEARCH_MAGIC_MORE
+ */
+function intra_search_api_words($words, $magic=INTRA_SEARCH_MAGIC) {
+
+	if($magic & INTRA_SEARCH_MAGIC_STEM) {
+		$words = module_invoke('intra_search_api', 'words_stem', $words);
+	}
+
+	if($magic & INTRA_SEARCH_MAGIC_SYNS) {
+		$words = module_invoke('intra_search_api', 'words_wordnet', $words);
+	}
+
+	if($magic & INTRA_SEARCH_MAGIC && module_exists('transliteration')) {
+		$words = module_invoke('intra_search_api', 'words_transliteration', $words);
+	}
+	return $words;
+}
+
+/**
+ * Provide stemmed words.
+ * @todo Detect other stemming modules for different languages.
+ * @param $words Array
+ *   Multi-dimensional array.
+ * @return Array
+ * @see intra_search_api_splitwords()
+ */
+function intra_search_api_words_stem($words, $countries=array()) {
+
+	if(!module_exists('porterstemmer'))
+		return $words;
+
+	foreach(array_keys($words) as $word) {
+		$stemmed = porterstemmer_search_preprocess($word);
+		if($stemmed != $word) {
+			$words[$word][] = $stemmed;
+		}
+	}
+	return $words;
+}
+
+/**
+ * Use wordnet to lookup synonyms for words.
+ * @param $words Array
+ *   Multi-dimensional array.
+ * @see intra_search_api_splitwords()
+ */
+function intra_search_api_words_wordnet($words) {
+
+	if(!count($words)) return $words;
+
+	foreach(array_keys($words) as $word) {
+		if(empty($word)) continue;
+		$syns = _intra_search_api_wordnet($word);
+		if(count($syns)) {
+			$words[$word] = array_merge($words[$word], $syns);
+		}
+
+	}
+
+	return $words;
+}
+
+/**
+ * Transliterate words.
+ */
+function intra_search_api_words_transliteration($words, $langs = 'en') {
+	if(!module_exists('transliteration')) return $words;
+
+	$countries = array(null);
+	$terms = search_get_keys();
+
+	if($terms && module_exists('countries_api')) {
+		$list = countries_api_get_array('iso2', 'printable_name');
+		$query = array();
+		if($query = search_query_extract($terms, 'c_country')) {
+			$query = explode(',',  str_replace('_', ' ', $query));
+		} elseif($countries = search_query_extract($terms, 'p_country')) {
+			$query = explode(',',  str_replace('_', ' ', $query));
+		}
+
+		foreach($query as $_country) {
+			$pos = array_search($_country, $list);
+			if($pos !== false)
+				$countries[] = $pos;
+		}
+
+		dfb($countries);
+
+	}
+
+
+	foreach(array_keys($words) as $word) {
+		foreach($countries as $iso2) {
+			$trans = transliteration_get($word, $iso2);
+			if($trans != $word) {
+				$words[$word][] = $trans;
+			}
+		}
+	}
+
+	return $words;
+}
+
+
+/**
+ * Format search words back into a regular expression
+ * @param $words Array
+ *   Multi-dimensional array.
+ * @see intra_search_api_splitwords()
+ * @todo
+ *   When removing ignorable words, do not inject extra space.
+ */
+function intra_search_api_search_regex(array $words) {
+
+	$regs = array();
+
+	// words to be possibly ignored
+	$ignore = array('corporation', 'gmbh', 'incorporated');
+	$locale = array_map('t', $ignore);
+	$ignore = array_merge($ignore, $locale);
+	$ignore = array_unique($ignore);
+
+	$stripMap = array();
+	$_words = array_keys($words);
+	$_words = array_unique($_words);
+	$nr = count($_words);
+	if($nr >= 2) {
+		foreach($_words as $word) {
+			// Calculate scores word ignorable words
+			if(drupal_strlen($word) <= 3) {
+				$stripMap[$word] = 0.33*(3-strlen($word));
+			} elseif(in_array($word, $ignore)) {
+				$stripMap[$word] = 1;
+			}
+		}
+
+		// Not _all_ words can be stripped, so leave least scored
+		if(count($stripMap) == $nr) {
+			asort($stripMap, SORT_NUMERIC, SORT_ASC);
+			array_shift($stripMap);
+		}
+	}
+
+	// Word separator
+	$separator = '.*([[:space:]]|[[:punct:]]|$)+';
+
+	// Generate regexp
+	foreach($words as $word => $syns) {
+
+		$syns = array_unique($syns);
+
+		$quoted = array_map('quotemeta', $syns);
+
+		$regexp  = implode("$separator|", $quoted);
+		$regexp .= $separator;
+
+		if(isset($stripMap[$word]))
+			$regexp .= '|.*';
+
+		$regs[] = $regexp;
+	}
+
+	$regexp = implode(').*(', $regs);
+	$regexp = "($regexp)";
+
+	return $regexp;
+
+}
+
+/**
+ * Search synonyms for word.
+ * Uses WordNet executable to retrieve synonyms.
+ * @param $string
+ *    Word to look for synonyms.
+ * @return Array
+ *    Word synonyms.
+ */
+function _intra_search_api_wordnet($word) {
+
+
+	$exec = variable_get('wordnet_executable', '/usr/local/WordNet-3.0/bin/wn');
+
+	if(!is_executable($exec)) return array();
+
+	$syns = array();
+	$lines = array();
+	exec("$exec ".escapeshellarg($word)." -synsn -synsv", $lines);
+
+	foreach($lines as $line) {
+		if(preg_match('/^Sense \d+$/', $line)) {
+			$sense = true;
+		} elseif($sense) {
+			$line = strtolower($line);
+			$foo = explode(', ', trim($line));
+			$syns = array_merge($syns, $foo);
+			$sense = false;
+		}
+	}
+
+	$syns = array_unique($syns);
+
+	return $syns;
+}
+
+
+/**
+ * Return scores for results.
+ *
+ * Runs $results against defined rules. Rules can be defined by
+ * creating callback $callback. Callback should return:
+ * @code
+ * function HOOK_CALLBACK() {
+ *   return array(
+ *      'ranking_function' => t('visible name')
+ *   );
+ * }
+ * @endcode
+ * Ranking function should accept params:
+ * Intra_Object, $keywords, $scope
+ *
+ * @param $results Array
+ *   Array of objects, which should be looped thru and to
+ *   be calculated for scores.
+ * @param $keywords String
+ *   Search string to compare rule against.
+ * @param $scope String
+ *   Object keyname to compare rule against.
+ */
+function _intra_search_api_search_score(array $results, $keywords, $scope, $callback) {
+	include_once('inc/rank.inc');
+
+	$total = 0;
+
+	// Array to contain ranking results
+	$weights = array();
+	$scales = array();
+	$ranks = array();
+
+	foreach(array_keys($results) as $id) {
+		$ranks[$id] = 0;
+	}
+
+	if(count($results) == 1)
+		return $ranks;
+
+	// Run thru ranking methods
+	foreach(array_keys(module_invoke_all($callback)) as $ranker) {
+
+		$scale = variable_get($ranker, 5);
+		if($scale == 0) continue;
+
+		$r = call_user_func_array($ranker, array($results, $keywords, $scope));
+
+		if(!count($r)) continue;
+
+		$weights[$ranker] = $r;
+
+		$total += $scales[$ranker] = $scale;
+	}
+
+	if($total == 0)
+		return $ranks;
+
+	// Now calculate scores
+	foreach($weights as $ranker => $scores) {
+		foreach(array_keys($results) as $id) {
+			$_weight = $scores[$id] * $scales[$ranker] / $total;
+
+			$ranks[$id] += $_weight;
+		}
+	}
+
+	return $ranks;
+}
+

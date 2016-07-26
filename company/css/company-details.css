@@ -1,0 +1,86 @@
+.visibility-notice {
+}
+
+.column-break-line {
+	clear: left;
+}
+
+.company-details-damp {
+	width:50%;
+}
+
+.company-details-damp .note > *:first-child {
+	padding-top:0;
+	margin-top:0;
+}
+
+.company-details-damp .note > *:last-child {
+	padding-bottom:0;
+	margin-bottom:0;
+}
+
+.company-details-addr {
+	width:50%;
+}
+
+.company-details-bill {
+	width:50%;
+}
+
+.company-details-bill-addr {
+	width:50%;
+}
+
+.vcard.company.details > fieldset > .View-Image-Container {
+	margin-right:1.2em
+}
+
+/**
+ * jQuery UI modifications
+ */
+
+.ui-tabs .ui-widget-content legend {
+	display:none;
+}
+
+/**
+ * Flot legend
+ */
+#sales-container {
+	height:200px;
+}
+#sales-container table {
+	width:auto;
+}
+
+/**
+ * Hide company from rolodex cards
+ */
+.contact-select .data-container .compact > dt:first-child {
+	display:none;
+}
+.contact-select .data-container .compact .company {
+	display:none;
+}
+
+/**
+ * Printing modifications
+ */
+@media print {
+	.ui-tabs > ul {
+		display:none;
+	}
+
+	.ui-tabs .ui-widget-content legend {
+		display:block;
+	}
+	.ui-tabs .ui-widget-content legend:after {
+		content:":";
+	}
+
+	.company-detailed .ui-tabs .ui-tabs-hide {
+		display: block !important;
+	}
+
+
+}

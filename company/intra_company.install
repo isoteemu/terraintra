@@ -1,0 +1,44 @@
+<?php
+function intra_company_updateinit() {
+	static $init = false;
+	if($init) return true;
+	$init = true;
+
+	module_load_include('inc', 'intra_api', 'inc/init');
+
+	intra_api_init_includepath();
+	intra_api_init_autoloader();
+	intra_api_init_database();
+}
+
+/**
+ * update hook for adding visible field.
+ */
+function intra_company_update_1() {
+	intra_company_updateinit();
+
+	$db =& Company::db();
+	$db->beginTransaction();
+
+	$db->query('ALTER TABLE `Company` ADD `visible` TINYINT( 1 ) NOT NULL DEFAULT 1');
+	$db->query('ALTER TABLE `Company` ADD INDEX ( `visible` )');
+
+	$db->commit();
+
+	return array();
+}
+
+function intra_company_update_2() {
+	intra_company_updateinit();
+
+	$db =& Company::db();
+	$db->beginTransaction();
+
+	$db->query('ALTER TABLE `Company` ADD `C_PARENT_C_ID` INT( 10 ) NULL DEFAULT NULL AFTER `C_CLASS`');
+	$db->query('ALTER TABLE `Company` ADD INDEX ( `C_PARENT_C_ID` )');
+	$db->query('ALTER TABLE `Company` ADD FOREIGN KEY ( `C_PARENT_C_ID` ) REFERENCES `terraintra`.`Company` (`C_ID`) ON DELETE SET NULL');
+
+	$db->commit();
+
+	return array();
+}

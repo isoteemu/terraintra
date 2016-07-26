@@ -1,0 +1,519 @@
+<?php
+
+function intra_search_contact_menu() {
+	$items = array();
+/*
+	$items['admin/settings/intra/search/contact'] = array(
+		'title'				=> 'Company Search',
+		'description'		=> 'Settings for Intra Contact Search',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_search_contact_admin_settings'),
+		'access arguments'	=> array('administer site configuration'),
+		'file'				=> 'inc/admin.pages.inc',
+		'type'				=> MENU_LOCAL_TASK
+	);
+*/
+	$items['search/suggest/intra_search_contact'] = array(
+		'page callback'      => 'intra_search_contact_autosuggest',
+		'access arguments'   => array('search content'),
+		'page arguments'	 => array(3),
+		'type'               => MENU_CALLBACK,
+	);
+/*
+	$items['intra/company/%intra_company/ping/search'] = array(
+		'page callback'      => 'intra_search_contact_ping',
+		'access arguments'   => array('search content'),
+		'page arguments'	 => array(2, 'c_cname'),
+		'type'               => MENU_CALLBACK,
+	);
+*/
+	return $items;
+}
+
+function intra_search_contact_theme() {
+	return array(
+
+		'intra_search_contact_suggestresult' => array(
+			'arguments' => array('contact' => null),
+			'template' => 'autosuggest-result'
+		),
+
+		'intra_contact_snippet' => array(
+			'arguments' => array('contact' => null),
+			'template' => 'intra-contact-snippet'
+		)
+	);
+}
+
+function template_preprocess_intra_search_contact_suggestresult(&$variables) {
+	$variables['view'] = intra_api_view($variables['contact']);
+}
+
+function template_preprocess_intra_contact_snippet(&$variables) {
+	$variables['view'] = intra_api_view($variables['contact']);
+}
+
+/**
+ * Hook to alter search form.
+ */
+function intra_search_contact_form_alter(&$form, $form_state, $form_id) {
+	if ($form_id == 'search_form' && $form['module']['#value'] == 'intra_search_contact') {
+		$form['basic']['inline']['keys']['#autocomplete_path'] = 'search/suggest/intra_search_contact';
+
+
+		$form['basic']['inline']['add'] = array(
+			'#type' => 'submit',
+			'#submit' => array('intra_search_contact_form_add_submit'),
+			'#value' => t('Add new contact'),
+			'#attributes' => array(
+				'class' => 'button-add'
+			)
+		);
+
+		if(user_access('use advanced search')) {
+			$keys =& $form['basic']['inline']['keys']['#default_value'];
+			if($scope = search_query_extract($keys, 'scope')) {
+				$keys = search_query_insert($keys, 'scope');
+			}
+
+			$scopes = intra_search_contact_searchscopes();
+
+			$form['basic']['inline']['#weight'] = (isset($form['basic']['#weight'])) ? $form['basic']['#weight'] : 1;
+			$form['basic']['inline']['scope'] = array(
+				'#title' => t('Scope'),
+				'#type' => 'select',
+				'#options' => $scopes,
+				'#default_value' => $scope,
+				'#weight' => $form['basic']['inline']['#weight']-1
+			);
+
+			$form['advanced'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Advanced search'),
+				'#collapsible' => TRUE,
+				'#collapsed' => TRUE,
+				'#attributes' => array('class' => 'search-advanced'),
+				'#weight' => $form['basic']['#weight']+1
+			);
+
+			if($scopes['p_class']) {
+				$tax = Codes::arrayMap('P_CLASS');
+				array_map('t', $tax);
+
+				if($p_class = search_query_extract($keys, 'p_class')) {
+					$p_class = explode(',', $p_class);
+					$keys = search_query_insert($keys, 'p_class');
+				} else {
+					$p_class = array();
+				}
+
+				$form['advanced']['p_class'] = array(
+					'#type' => 'checkboxes',
+					'#title' => t('Taxonomy'),
+					'#multiple' => true,
+					'#options'  => $tax,
+					'#default_value' => $p_class
+				);
+			}
+
+			if($magic = search_query_extract($keys, 'magic')) {
+				$keys = search_query_insert($keys, 'magic');
+			} else {
+				$magic =  variable_get('intra_search_magic', INTRA_SEARCH_MAGIC);
+			}
+
+			$form['advanced']['magic'] = array(
+				'#type' => 'select',
+				'#title' => t('Magic level'),
+				'#description' => t('How magical search should be'),
+				'#options' => array(
+					INTRA_SEARCH_MAGIC_NONE => '',
+					INTRA_SEARCH_MAGIC => t('Less magic'),
+					INTRA_SEARCH_MAGIC_MORE => t('More magic')
+				),
+				'#default_value' => $magic
+			);
+		}
+
+		drupal_add_css(drupal_get_path('module', 'intra_search_api').'/css/search.css');
+
+		$form['#validate'][] = 'intra_search_contact_validate';
+	}
+
+}
+
+function intra_search_contact_autosuggest($keys=null, $rkey) {
+	$r = array();
+	if($keys && strlen($keys) > 2) {
+		$r = _intra_search_contact_autosuggest($keys, $rkey);
+	}
+	drupal_json($r);
+}
+
+function _intra_search_contact_autosuggest($keys=null, $rkey) {
+	$r = array();
+	$results = array();
+
+	$results = intra_search_contact_search_contact($keys, '');
+
+	if(count($results)) {
+		$scores = intra_search_contact_search_score($results, $keys, 'p_lname');
+
+		arsort($scores);
+		$i = 0;
+		$limit = variable_get('company_suggest_limit', 7);
+		foreach(array_keys($scores) as $id) {
+			if(!$results[$id]->get('loadedFromDb')) continue;
+			$name = sprintf('%s %s', $results[$id]->get('p_fname'), $results[$id]->get('p_lname'));
+			$r[$name] = theme('intra_search_contact_suggestresult', $results[$id]);
+			if($i++ == $limit) break;
+		}
+	}
+
+	return $r;
+}
+
+/**
+ * Process keys for company search.
+ * @see http://api.drupal.org/api/function/node_search_validate/6
+ */
+function intra_search_contact_validate($form, &$form_state) {
+
+	// Initialise using any existing basic search keywords.
+	$keys = $form_state['values']['processed_keys'];
+
+	if(!empty($form_state['values']['scope'])) {
+		$keys = search_query_insert($keys, 'scope', $form_state['values']['scope']);
+	} elseif($scope = intra_search_api_detectscope($keys)) {
+		$form_state['values']['scope'] = $scope;
+		$keys = search_query_insert($keys, 'scope', $form_state['values']['scope']);
+	}
+
+	if(isset($form_state['values']['p_class']) && count($form_state['values']['p_class'])) {
+		// Remove unchecked values (0)
+		$form_state['values']['p_class'] = array_filter($form_state['values']['p_class']);
+		$keys = search_query_insert($keys, 'p_class', implode(',', $form_state['values']['p_class']));
+	}
+
+	if (!empty($keys)) {
+		form_set_value($form['basic']['inline']['processed_keys'], trim($keys), $form_state);
+	}
+
+}
+
+/**
+ * Redirect to contact adding page.
+ */
+function intra_search_contact_form_add_submit($form, &$form_state) {
+
+	$scope = $form_state['values']['scope'];
+	if(!$scope) $scope = 'contact';
+	$get[$scope] = $form_state['values']['keys'];
+
+	foreach($form_state['values']['p_class'] as $class) {
+		$get['p_class'][] = $class;
+	}
+	$form_state['redirect'] = array('intra/contact/add', $get);
+}
+
+
+function intra_search_contact_searchscopes() {
+	$scopes = array(
+		''			=> t('Name'),
+		'email'		=> t('Email'),
+		'p_class'	=> t('Taxonomy'),
+		'p_phone'	=> t('Phone')
+	);
+
+	if(module_exists('intra_search_company'))
+		$scopes['c_cname'] = t('Company');
+
+	return $scopes;
+}
+
+
+/**
+ * Implementation of hook_company_ranking()
+ * @return Array
+ *   Key is callback name, and value is human readable name.
+ *   Callback function should take two arguments:
+ *    - Array of items to rank
+ *    - String which was used as keyword
+ *   Callback return should then be array, which contains
+ *    - Key is item id, which should reflect passed items
+ *      array id
+ *    - Value is number in scale of 0-1 where, 0 means worst
+ *      possible match, and 1 is perfect match.
+ * @see intra_search_company_search_score()
+ */
+function intra_search_contact_contact_ranking() {
+	$r = array(
+
+		'intra_search_api_rank_alpahabet' => t('Alphabetically'),
+		'intra_search_api_rank_levenshtein' => t('Similarity'),
+/*
+		'intra_search_company_rank_value' => t('Customer value'),
+		'intra_search_company_rank_recent' => t('Recent activity'),
+*/
+		'intra_search_contact_rank_prospect' => t('Own prospect')
+	);
+	if(module_exists('votingapi') && false) {
+//		$r['intra_search_company_rank_searchvote'] => t('Customer search zeitergeist');
+		//$r['intra_search_company_rank_searchvote'] = t('Customer general zeitergeist');
+	}
+
+	return $r;
+}
+
+/**
+ * Callback for HOOK_parse_query();
+ */
+function intra_search_contact_parse_query($text) {
+	return intra_search_api_parse_query($text);
+}
+
+/**
+ * Hook for searching
+ */
+function intra_search_contact_search($op = 'search', $keys = NULL, $skip_access_check = FALSE) {
+
+	switch($op) {
+		case 'name' :
+			if ($skip_access_check || user_access('access contact profiles')) {
+				return t('Contacts');
+			}
+			break;
+		case 'search' :
+
+			drupal_add_css(drupal_get_path('module', 'intra_search_contact') . '/css/search-result.css');
+
+			$find = array();
+			//drupal_add_css(drupal_get_path('module', 'intra_search_company') . '/search-result-intra_search_company.css');
+
+			$results = intra_search_contact_search_contact($keys);
+
+			$nr = count($results);
+
+			// If only one result, jump directly to it
+			if($nr == 1 && $_GET['playlist'] == 'vanhalen') {
+				$contact = current($results);
+				drupal_goto(intra_api_url($contact));
+			} elseif($nr == 1 && $_GET['playlist'] == 'nutcracker') {
+				$contact = current($results);
+				drupal_goto(intra_api_url($contact).'/nutshell');
+			} elseif($nr) {
+				$scores = array();
+				if($nr > 1) {
+
+					if($scope = search_query_extract($keys, 'scope')) {
+						$keys = search_query_insert($keys, 'scope');
+					} else {
+						$scope = 'p_lname';
+					}
+
+					$scores = intra_search_contact_search_score($results, $keys, $scope);
+				}
+				foreach($results as $id => $result) {
+					$prospect = null;
+					if($c_id = $result->get('c_id')) {
+						if($pid = Company::load($c_id)->get('prospect_of')) {
+							$prospect = theme('intra_contact', $pid);
+						}
+					}
+
+					$view = intra_api_view($result);
+					$find[$id] = array(
+						'title' => (string) $view->getFn(),
+						'link' => url(intra_api_url($result)),
+						'snippet' => theme('intra_contact_snippet', $result),
+//						'date' => strtotime($result->get('p_regdate')),
+						'score' => (isset($scores[$id])) ? $scores[$id] : 0,
+						'type' => (string) $view->asText()->get('p_type'),
+						'user' => $prospect,
+						'object' => $result, // Addition!
+					);
+				}
+				if(count($scores) > 1) {
+					array_multisort($scores, SORT_DESC, SORT_NUMERIC, $find);
+				}
+			}
+			return $find;
+	}
+}
+
+function intra_search_contact_search_contact($keys) {
+	$filters = array();
+	$results = array();
+
+	if(($magic = search_query_extract($keys, 'magic')) !== null) {
+		$keys = search_query_insert($keys, 'magic');
+	} else 
+		$magic = variable_get('intra_search_magic', INTRA_SEARCH_MAGIC);
+
+	if($scope = search_query_extract($keys, 'scope')) {
+		$keys = search_query_insert($keys, 'scope');
+	} else {
+		$scope = intra_search_api_detectscope($keys);
+	}
+
+	if($tax = search_query_extract($keys, 'p_class')) {
+		$keys = search_query_insert($keys, 'p_class');
+	}
+
+	if($scope == 'c_cname') {
+		$companys = module_invoke('intra_search_company', 'search_company', $keys.' magic:'.$magic);
+		if(count($companys)) {
+			$c_ids = array_keys($companys);
+			$filters['company'] = new Intra_Filter();
+			$filters['company']->whereIn('c_id', $c_ids);
+		}
+
+	} elseif($scope == 'email') {
+		$filters['email'] = new Intra_Filter();
+		$email = preg_quote($keys).'\s*';
+		$filters['email']->whereRegexp('p_email', $email);
+
+		$subFilter = Intra_Filter::factory()->whereRegexp('pe_email', $email);
+		$email_list = Person_Email::load($subFilter)->each()->get('p_id')->getChildren();
+		if(count($email_list))
+			$filters['email_list'] = Intra_Filter::factory()->whereIn('p_id', $email_list);
+
+	}
+
+	if(empty($scope)) {
+		$filters += _intra_search_contact_namefilter($keys);
+	}
+
+	if($tax) {
+		foreach(array_keys($filters) as $f) {
+			$filters[$f]->andWhereRecordlist('p_class', explode(',', $tax));
+		}
+	}
+
+	foreach($filters as $filter) {
+		if(count($results))
+			$filter->andWhereNotIn('p_id', array_keys($results));
+
+		foreach(Person::load($filter) as $contact) {
+
+			if(!$contact->get('loadedFromDb')) continue;
+			$results[$contact->get('p_id')] = $contact;
+		}
+	}
+
+	return $results;
+
+}
+
+/**
+ * Create filter rules for name.
+ * @param $keys Search string
+ * @return Array
+ */
+function _intra_search_contact_namefilter($keys) {
+	$words = intra_search_api_splitwords($keys);
+	$words = intra_search_api_words($words);
+
+	$filters = array();
+
+	if(count($words) == 1) {
+		$reg = intra_search_api_search_regex($words);
+		$filters['fname'] = new Intra_Filter();
+		$filters['lname'] = new Intra_Filter();
+		$filters['fname']->whereRegexp('p_fname', $reg);
+		$filters['lname']->whereRegexp('p_lname', $reg);
+
+	} else {
+		$lname = $words;
+		$fname = array_reverse($words);
+
+		$lregs = array(
+			intra_search_api_search_regex($lname)
+		);
+		while(array_shift($lname)) {
+			if(!count($lname)) break;
+			$lregs[] = intra_search_api_search_regex($lname);
+		}
+
+		$fregs = array(intra_search_api_search_regex(
+			array_reverse($fname)
+		));
+		while(array_shift($fname)) {
+			if(!count($fname)) break;
+			$fregs[] = intra_search_api_search_regex(array_reverse($fname));
+		}
+
+		$filters['flname'] = new Intra_Filter();
+		$filters['flname']->whereRegexp('p_fname', '('.implode('|', $fregs).')');
+		$filters['flname']->whereRegexp('p_lname', '('.implode('|', $lregs).')');
+
+		$filters['lfname'] = new Intra_Filter();
+		$filters['lfname']->whereRegexp('p_fname', '('.implode('|', $lregs).')');
+		$filters['lfname']->whereRegexp('p_lname', '('.implode('|', $fregs).')');
+	}
+	return $filters;
+}
+
+/**
+ * Return scores for results.
+ */
+function intra_search_contact_search_score(array $results, $keywords, $scope) {
+	return _intra_search_api_search_score($results, $keywords, $scope, 'contact_ranking');
+}
+
+
+/**
+ * Add ranking for own prospects.
+ * @param $results Array
+ * @param $keywords Ignored
+ */
+function intra_search_contact_rank_prospect($results, $keywords) {
+
+
+	$me = intra_api_currentuser()->get('p_id');
+	$my = intra_api_currentuser()->get('c_id');
+
+	$r = array();
+
+	foreach($results as $id => $contact) {
+		$score = 0.0;
+
+		$by = 0;
+		$of = 0;
+
+		$company = $contact->getCompany();
+		$by = $company->get('prospect_by');
+		$of = $company->get('prospect_of');
+
+		// Is customer by me
+		if($by) {
+			try {
+				if($by == $me) {
+					$score += 0.33;
+				}
+				// Is customer by person on same company
+				elseif(Person::load($by)->get('c_id') == $my) {
+					$score += 0.165;
+				}
+			} catch(UnexpectedValueException $e) {}
+		}
+
+		// Is customer of me
+		if($of) {
+			try {
+				if($of == $me) {
+					$score += 0.64;
+				}
+				// Is customer of my company
+				elseif(Person::load($of)->get('c_id') == $my) {
+					$score += 0.32;
+				}
+			} catch(UnexpectedValueException $e) {}
+			
+		}
+		$r[$id] = $score;
+	}
+
+	return $r;
+}
+

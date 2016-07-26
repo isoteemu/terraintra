@@ -1,0 +1,226 @@
+.contact-select {
+	padding:0.2em;
+/*	height: 380px; */
+}
+
+.contact-select .col-1 {
+	width:20%;
+}
+
+.contact-select .col-2 {
+	width:30%;
+}
+
+.contact-select .col-3 {
+	width:50%;
+}
+
+.contact-select form {
+	display:block;
+	margin:0 !important;
+}
+
+.contact-select li {
+	padding-left:0.4em;
+	margin-left:0.2em;
+}
+
+.contact-select > div {
+	float:left;
+}
+
+.contact-select .ui-widget-header {
+	background-position:top;
+}
+
+.contact-select .contact-select-tool button {
+	border:none;
+	background:transparent;
+	padding:0;
+	font-weight:bold;
+	cursor:pointer;
+}
+.contact-select .contact-select-tool button:hover {
+	text-decoration:underline;
+}
+.contact-select .contact-select-tool button:before {
+	content:"[";
+}
+.contact-select .contact-select-tool button:after {
+	content:"]";
+}
+
+/**
+ * Action tools.
+ */
+.contact-select .toolbar .action-mailto:before {
+	content: url('../image/mail-message-new.png');
+}
+
+.contact-select .toolbar .action-history:before {
+	content: url('../image/view-history.png');
+}
+.contact-select .toolbar .action-add:before {
+	content: url('../image/list-add-user.png');
+}
+
+.contact-select .toolbar button.contact-action[disabled] {
+	display:none;
+}
+
+
+/**
+ * Group display.
+ */
+.contact-select .contact-groups {}
+
+.contact-select .contact-groups ul, .contact-select .contact-groups li {
+	list-style-image:none;
+	list-style-type:none;
+	outline-style:none;
+}
+
+.contact-select .contact-groups li {
+	margin-right:-1px;
+	line-height:1.5em;
+	clear:both;
+	cursor:pointer;
+}
+
+.contact-select li.ui-state-active {
+	border-right-width: 0;
+}
+
+.contact-select .contact-groups .count {
+	color:#808080;
+	float:right;
+
+	padding-left:5px;
+	padding-right:2px;
+}
+
+.contact-select .contact-groups .text {
+	line-height:1.5em;
+	width:auto;
+	height:1.5em;
+	overflow:hidden;
+	white-space:nowrap;
+}
+
+.contact-select .contact-contacts {
+	margin-left:0.4em;
+}
+
+.contact-select .contact-contacts li {
+	margin-right:-1px;
+	height:1.5em;
+}
+
+.contact-select .contact-contacts label {
+	display:block;
+	cursor:pointer;
+}
+
+.contact-select .contact-actions {
+	margin-left:0.3em;
+}
+
+.contact-select .rolodex {
+	max-height:25em;
+	overflow-y:auto;
+	margin-top:0.3em;
+	margin-left:0.3em;
+}
+
+/* TODO */
+.contact-select ul.rolodex, .contact-select .rolodex li {
+	list-style-image:none;
+	list-style-type:none;
+	outline-style:none;
+}
+
+.contact-select .rolodex li {
+	display:none;
+}
+
+.contact-select  .rolodex .contact {
+	display:block;
+	overflow-x:auto;
+}
+
+.contact-select .rolodex legend {
+	font-size:110%;
+}
+
+
+.contact-select .rolodex .vcard .sosialism {
+	float:none;
+	vertical-align:top;
+	display:table-cell;
+}
+
+
+.contact-select .rolodex .vcard .data-container {
+	float:none;
+	display:table-cell;
+}
+
+/**
+ * Photo cropping magic!
+ */
+.contact-select .rolodex .vcard > .View-Image-Container {
+	vertical-align:middle;
+}
+
+
+@media Screen {
+
+	.contact-select .rolodex fieldset fieldset {
+		margin-left: -1em;
+		margin-right: -1em;
+		margin-bottom: -1em;
+
+		border-left: 0 none;
+		border-bottom: 0 none;
+		border-right: 0 none;
+
+		float:none;
+		width:100%;
+		display:block;
+	}
+
+}
+
+@media Print {
+
+	.contact-select .col-1 {
+		width:0;
+		display:none;
+	}
+
+	.contact-select .col-2 {
+		width:0;
+		display:none;
+	}
+	.contact-select .col-3 {
+		width:100%;
+		overflow:show;
+		float:none;
+	}
+
+	.contact-select .contact-actions {
+		display:none;
+	}
+
+	.contact-select .rolodex li {
+		page-break-before: always;
+	}
+
+	.contact-select fieldset.collapsible.collapsed {
+		display:none;
+		border-top:0 none;
+	}
+	.contact-select fieldset.collapsible.collapsed legend {
+		display:none;
+	}
+}

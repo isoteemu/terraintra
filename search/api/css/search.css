@@ -1,0 +1,22 @@
+.search-form #edit-submit {
+	padding-left: 18px;
+	background-image: url('../image/edit-find.png');
+	background-position: 2px center;
+	background-repeat: no-repeat;
+}
+
+#autocomplete li {
+	white-space: normal !important;
+}
+
+#autocomplete li ~ li {
+	border-top: 1px solid #e9eff3;
+}
+
+#autocomplete li div {
+	display:block;
+}
+
+#autocomplete li .View-Image-Container {
+	margin-right:0;
+}

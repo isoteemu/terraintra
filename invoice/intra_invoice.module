@@ -1,0 +1,164 @@
+<?php
+
+function intra_invoice_menu() {
+	$items = array();
+
+	$items['intra/invoice/%intra_invoice'] = array(
+		'title'				=> 'Invoice',
+		'title callback'	=> 'intra_invoice_titlecallback',
+		'title arguments'	=> array(2),
+		'access callback'	=> true,
+		'page callback'		=> 'intra_invoice_page',
+		'page arguments'	=> array(2),
+		'file'				=> 'inc/pages.inc',
+		'type'				=> MENU_CALLBACK,
+		'menu_name'			=> 'intra'
+	);
+
+	$items['intra/invoice/%intra_invoice/view'] = array(
+		'title'				=> 'Invoice',
+		'type'				=> MENU_DEFAULT_LOCAL_TASK,
+		'weight'			=> -10,
+		'menu_name'			=> 'intra'
+	);
+
+	$items['intra/invoice/%intra_invoice/file'] = array(
+		'access callback'		=> true,
+		'page callback'			=> 'intra_invoice_page_file',
+		'file'					=> 'inc/pages.inc',
+		'page arguments'		=> array(2),
+		'type'					=> MENU_CALLBACK,
+		'menu_name'				=> 'intra'
+	);
+
+	$items['intra/company/%intra_company/invoice'] = array(
+		'title'				=> t('Invoices'),
+		'description'		=> t('Invoices sent to company'),
+		'file'				=> 'inc/pages.inc',
+		'page callback'		=> 'intra_invoice_page_company',
+		'page arguments'	=> array(2),
+		'type'				=> MENU_LOCAL_TASK,
+		'access callback'	=> true,
+		'menu_name'			=> 'intra'
+	);
+
+	$items['intra/company/%intra_company/invoice/add'] = array(
+		'title'				=> t('Create Invoice'),
+		'description'		=> t('Create new invoice for company'),
+		'file'				=> 'inc/pages.inc',
+		'type'				=> MENU_LOCAL_TASK,
+		'menu_name'			=> 'intra'
+	);
+
+	$items['intra/invoice/%intra_invoice/nutshell'] = array(
+		'access callback'		=> true,
+		'page callback'			=> 'intra_invoice_page_infobox',
+		'file'					=> 'inc/pages.inc',
+		'page arguments'		=> array(2),
+		'type'					=> MENU_CALLBACK,
+		'menu_name'				=> 'intra'
+	);
+
+	return $items;
+}
+
+
+function &intra_invoice_load($id) {
+	try {
+		$invoice = Invoice::load($id);
+
+		if($invoice instanceOf Invoice) {
+			drupal_add_link(array(
+				'rel' => 'alternate',
+				'type' => 'application/pdf',
+				'title' => t('Invoice @nr', array('@nr' => $invoice->get('in_nr'))),
+				'href' => url(intra_api_url($invoice).'/file')
+			));
+			return $invoice;
+		}
+	} catch(UnexpectedValueException $e) {
+		Intra_CMS()->dfb($e);
+	}
+
+	return false;
+}
+
+function intra_invoice_init() {
+	intra_invoice_init_includepath();
+
+	Intra_View::addViewClass('Intra_Product');
+
+	$path = drupal_get_path('module', 'intra_invoice');
+	drupal_add_css($path.'/css/invoices.css');
+	drupal_add_js($path.'/js/microformat.js');
+}
+
+/**
+ * Set include path for Intra librarys.
+ */
+function intra_invoice_init_includepath() {
+	static $toggle = false;
+
+	if(!$toggle) {
+		$toggle = true;
+		// Set include path
+		set_include_path(
+			dirname(__FILE__).'/lib'
+			.PATH_SEPARATOR.get_include_path()
+		);
+	}
+}
+
+function intra_invoice_titlecallback(Invoice $invoice) {
+	return t('Invoice @invoice: @company', array(
+		'@invoice' => $invoice->get('in_nr'),
+		'@company' => $invoice->billing()->get('c_cname')
+	));
+}
+
+/**
+ * Hook for adding unpaid invoices to company infobox
+ */
+function intra_invoice_intra_company_infobox(Company $company) {
+	$r = array();
+
+	$unpaid = Invoice::load(array(
+		'c_id' => $company->get('c_id'),
+		'in_payment_date' => ''
+	));
+
+	if(count($unpaid)) {
+		$views = array_map('intra_api_view', $unpaid->getChildren());
+		$r['unpaid_invoices'] = array(
+			'#title' => t('Unpaid invoices'),
+			'#value' => '<ul class="invoices"><li>'.implode("</li>\n<li>", $views).'</li></ul>'
+		);
+	}
+	return $r;
+}
+
+function intra_invoice_theme() {
+	return array(
+		'intra_invoice_details' => array(
+			'arguments' => array('invoice' => null),
+			'file' => 'inc/pages.inc',
+			'template' => 'invoice-details'
+		),
+		'intra_invoice_listing' => array(
+			'arguments' => array('invoices' => null),
+			'file' => 'inc/pages.inc',
+			'template' => 'invoice-listing'
+		),
+
+		'intra_invoice_infobox' => array(
+			'arguments' => array('invoice' => null, 'sections' => array()),
+			'file' => 'inc/pages.inc',
+			'template' => 'invoice-infobox'
+		),
+		'intra_invoice_infobox_orderdetails' => array(
+			'arguments' => array('invoice' => null),
+			'file' => 'inc/pages.inc',
+			'template' => 'invoice-infobox-orderdetails'
+		),
+	);
+}

@@ -1,0 +1,116 @@
+dialog.activity .odd {
+  background-color: #edf5fa;
+}
+
+dialog.activity .row {
+	position:relative;
+/*	min-height:32px; */
+	vertical-align:top;
+	border-spacing:0.2em;
+
+	line-height:120%;
+}
+/*
+dialog.activity .row + .row {
+	margin-top:-2.2em;
+}
+
+dialog.activity .row:hover + .row {
+	margin-top:0;
+}
+*/
+dialog.activity .row > * {
+	vertical-align:top;
+	display: table-cell;
+}
+
+dialog.activity .ui-widget-content {
+	width:100%;
+}
+
+dialog.activity .row .tags {
+	float:right;
+	padding-left:5px;
+	padding-right:2px;
+	font-size:small;
+}
+
+dialog.activity .row .tags:before {
+	content: "[";
+}
+
+dialog.activity .row .tags:after {
+	content: "]";
+}
+
+dialog.activity .title {
+	font-weight:bold;
+}
+
+/** Show as one row. **/
+dialog.activity .body {
+	overflow:hidden;
+	max-height:1.2em;
+}
+
+dialog.activity .illuminati {
+	overflow:hidden;
+	height:32px;
+	width:32px;
+}
+
+dialog.activity .ui-widget-content dd {
+	margin:0;
+}
+
+/** Remove padding and stuff. **/
+dialog.activity .ui-widget-content dd > *:first-child {
+	padding-top:0;
+	margin-top:0;
+}
+
+dialog.activity .info {
+	white-space:nowrap;
+	font-size:80%;
+	vertical-align:middle;
+	line-height:140%;
+}
+
+dialog.activity .info .file-attachment {
+	overflow:hidden;
+	width:16px;
+	display:inline-block;
+	vertical-align:middle;
+}
+
+/**
+ * Mime types
+ * @{
+ */
+dialog.activity .info .file-attachment:before {
+	content: url('../image/mime/x-office-document.png');
+}
+
+dialog.activity .info .file-attachment[type ="application/pdf"]:before,
+dialog.activity .info .file-attachment[href $="\.pdf"]:before {
+	content: url('../image/mime/application-pdf.png');
+}
+dialog.activity .info .file-attachment[type ="application/zip"]:before,
+dialog.activity .info .file-attachment[href $="\.zip"]:before {
+	content: url('../image/mime/application-zip.png');
+}
+dialog.activity .info .file-attachment[type ="application/rtf"]:before,
+dialog.activity .info .file-attachment[href $="\.rtf"]:before {
+	content: url('../image/mime/application-rtf.png');
+}
+
+/**
+ * @} End of mime types
+ */
+
+dialog.activity .info time .date {
+	border-bottom:1px solid #AAA;
+}
+dialog.activity .View-Image-Container > .roundcorner-sprite {
+	display:none;
+}

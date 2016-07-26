@@ -1,0 +1,8 @@
+name = Intra Contact Search
+description = Intra Contact Searching
+package = Intra
+dependencies[] = intra_api
+dependencies[] = search
+dependencies[] = intra_search_api
+version = 1
+core = 6.x

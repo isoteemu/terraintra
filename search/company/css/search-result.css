@@ -1,0 +1,8 @@
+.intra_search_company-results .title * {
+	display:none;
+}
+
+.intra_search_company-results dl {
+	line-height:16px;
+}
+

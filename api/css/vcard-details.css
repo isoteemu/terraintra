@@ -1,0 +1,172 @@
+
+.details > .View-Image-Container {
+	margin-right:1.2em;
+}
+
+.details dl, .vcard dl {
+	float:left;
+	clear:right;
+}
+
+.details dl {
+	margin:0;
+	padding:0;
+}
+.details dl dt  {
+	text-align:right;
+	clear:both;
+	width:75px;
+	float:left;
+	color:#808080;
+}
+
+.details dl dt:after {
+	content:":";
+}
+
+.details dl dd  {
+	display:inline;
+	float:left;
+	margin-bottom:0;
+}
+
+.details .View-Image-Container-thumbnail {
+	padding-right:1em;
+}
+
+/**
+ * Wrapping hacks
+ * @{
+ */
+.vcard.details > span.View-Image-Container:first-child {
+	vertical-align:top;
+	display:table-cell;
+}
+
+.vcard.details > span.View-Image-Container:first-child ~ dl {
+	float:none;
+	display:table-cell;
+}
+/**
+ * @}
+ */
+
+/**
+ * Hidden vcard
+ */
+del.vcard {
+	text-decoration: line-through;
+}
+
+.vcard.details .fn {
+	font-weight:bold;
+}
+
+/**
+ * Location
+ * @{
+ */
+.vcard.details .location {
+	font-size:xx-small; vertical-align:top;
+}
+
+.vcard.details .location:before {
+	content:"(";
+}
+.vcard.details .location:after {
+	content:")";
+}
+
+.vcard.details .location .latitude ~ .longitude {
+	margin-left:0.8em;
+}
+/**
+ * @}
+ */
+/**
+ * Infobox
+ * @{
+ */
+
+.details .sosialism {
+	text-align:center;
+	vertical-align:top;
+	display:table-cell;
+}
+
+.details .sosialism ~ dl {
+	display:block;
+	display:table-cell;
+	float:none;
+}
+
+.details .sosialism button {
+	display:block;
+}
+
+.details .data-container {
+	display:table-cell;
+}
+
+.details .data-container dl {
+	float:none;
+	clear:both;
+}
+
+.vcard.details .data-container dl ~ dl {
+	padding-top:0.6em;
+}
+
+/**
+ * }@ Enf of Infobox
+ */
+
+
+/**
+ * Lite details
+ * @{
+ */
+
+.vcard.details-lite {
+	font-size: 80%;
+	white-space:nowrap;
+}
+
+.vcard.details-lite dl {
+	line-height: 12px;
+}
+
+.vcard.details-lite dl dt {
+	display:none;
+}
+.vcard.details-lite dl dd {
+	clear:left;
+	overflow:hidden;
+	white-space:nowrap;
+}
+/**
+ * @} End of Lite details
+ */
+
+@media print {
+
+	.details .View-Image-Container .roundcorner-sprite {
+		display:none;
+	}
+
+	.details .sosialism button {
+		display:none;
+	}
+
+	.details .compact > dt:first-child {
+		display:none;
+	}
+
+	.details .compact > dt:first-child + dd {
+		margin-left:0;
+	}
+	.details .compact > dt:first-child + dd .fn:first-child {
+		font-size:200%;
+	}
+
+}

@@ -1,0 +1,7 @@
+name = Intra Invoices
+description = Provides Invoicing for Intra
+package = Intra
+dependencies[] = intra_api
+dependencies[] = intra_company
+version = 1
+core = 6.x

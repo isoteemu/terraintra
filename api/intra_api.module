@@ -1,0 +1,520 @@
+<?php
+
+define('INTRA_API_NAME', 'TerraINTRA');
+
+define('INTRA_CODES_INVOICE_SALES', '0, 1, 2');
+
+define('INTRA_API_ACCESSMODE_NONE', 0);
+define('INTRA_API_ACCESSMODE_READ', 1);
+define('INTRA_API_ACCESSMODE_WRITE', 2);
+define('INTRA_API_ACCESSMODE_NORMAL', INTRA_API_ACCESSMODE_READ | INTRA_API_ACCESSMODE_WRITE );
+
+class Intra_Api_Exception extends Exception {}
+
+function intra_api_menu() {
+	$items['admin/settings/intra'] = array(
+		'title'				=> variable_get('intra_api_name', INTRA_API_NAME),
+		'description'		=> 'Settings for Intra API',
+		'file'				=> 'inc/admin.pages.inc',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_api_admin_settings'),
+		'access arguments'	=> array('administer site configuration')
+	);
+
+	$items['admin/settings/intra/codes'] = array(
+		'title'				=> t('Codes'),
+		'description'		=> 'Settings for Intra API Codes',
+		'file'				=> 'inc/admin.pages.inc',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_api_admin_codes'),
+		'access arguments'	=> array('administer site configuration'),
+		'type'				=> MENU_LOCAL_TASK,
+	);
+
+	return $items;
+}
+
+function intra_api_help($path, $arg) {
+	switch ($path) {
+		case 'admin/help#intra_api':
+		return '';
+	}
+}
+
+function intra_api_init() {
+	static $init = false;
+
+	if($init) return true;
+	$init = true;
+
+	require_once('inc/init.inc');
+
+	intra_api_init_includepath();
+	intra_api_init_autoloader();
+	intra_api_init_database();
+
+	intra_api_init_style();
+
+	// Declare stub dfb function, if devel module is missing.
+	if(!function_exists('dfb')) {
+		function dfb($msg=null) {
+			return;
+		}
+	}
+
+	/** TODO Move
+	if(module_exists('jquery_ui')) {
+		drupal_add_css(JQUERY_UI_PATH.'/themes/base/jquery-ui.css', 'module', 'screen');
+		jquery_ui_add(array('ui.draggable', 'ui.droppable'));
+	}
+	*/
+}
+
+/**
+ * Settings form for intra api.
+ */
+
+function intra_api_theme() {
+	return array(
+		'intra_actions' => array(
+			'arguments' => array('object' => null)
+		),
+		'fielset_tabbed' => array(
+			'arguments' => array('form' => array()),
+			'file' => 'inc/admin.pages.inc'
+		),
+		'intra_infobox_section' => array(
+			'arguments' => array('section' => array()),
+			'template' => 'infobox-section'
+		)
+	);
+}
+
+/**
+ * Hook for letting user to know requirments
+ * @TODO, geocoding, pear
+ * @see http://api.drupal.org/api/function/hook_requirements/6
+ */
+function intra_api_requirments($phase='runtime') {
+	$requirements = array();
+
+	return $requirements;
+}
+
+/**
+ * Hook for loading user
+ */
+function intra_api_user($op, $data, &$user) {
+	switch($op) {
+		case 'load' :
+			if(!$user->intra_uid) {
+				try {
+					$person = Person::load(array(
+						'%p_user' => $user->name,
+						'visible' => array(Intra_Object::VISIBLE, Intra_Object::HIDDEN)
+					))->current();
+					if($person) {
+						$user->intra_uid = $person->get('p_id');
+					}
+				} catch(Exception $e) {
+					Intra_CMS()->dfb($e);
+				}
+			}
+
+		break;
+	}
+
+}
+
+
+/**
+ * Generate HTML link href to resource
+ * @param $object
+ * @param $options
+ */
+function intra_api_url(Intra_Object $object) {
+
+	$class = intra_api_getclass($object, array('Company', 'Person', 'Invoice', 'Agreement'));
+
+
+	switch($class) {
+		case 'Company' :
+			if(intra_api_access('view', $object))
+				return 'intra/company/'.$object->get('c_id');
+			break;
+		case 'Agreement' :
+			if(intra_api_access('view', $object))
+
+				return sprintf('https://www.example.com/terraintra/admin/agreement.asp?Action=SHOW&X_VAR=SE_C_ID&X_ID=%d&SE_C_ID=%d&USERID=%d',
+					$object->customer()->get('c_id'),
+					$object->get('ag_id'),
+					intra_api_currentuser()->get('p_id')
+				);
+			break;
+		case 'Person' :
+			if(intra_api_access('view', $object))
+				return 'intra/contact/'.$object->get('p_id');
+			break;
+		case 'Invoice' :
+			if(intra_api_access('view', $object))
+				return 'intra/invoice/'.$object->get('in_id');
+			break;
+		default :
+			throw new InvalidArgumentException('Unknown resource class '.get_class($object));
+	}
+
+	return null;
+}
+
+/**
+ * Global switch for access mode
+ */
+
+function intra_api_accessmode($newmode=null) {
+	static $mode = INTRA_API_ACCESSMODE_NORMAL;
+	if($newmode !== null)
+		$mode = $newmode;
+	return $mode;
+}
+
+/**
+ * Access check.
+ * @todo Implement
+ */
+function intra_api_access($op, $object, $account=null) {
+	global $user;
+
+	switch($op) {
+		case 'view' :
+			if(!(intra_api_accessmode() & INTRA_API_ACCESSMODE_READ))
+				return false;
+		case 'create' :
+		case 'delete' :
+		case 'edit' :
+			if(!(intra_api_accessmode() &~ INTRA_API_ACCESSMODE_WRITE))
+				return false;
+	}
+
+	return true;
+}
+
+/**
+ * Wrap object into approriate view module.
+ * @param $object
+ *   Object to wrap
+ * @param $cacheable Bool
+ *   Use cache or not
+ * @return Intra_View
+ *   Returns Intra_View instance
+ */
+function intra_api_view(Intra_Object &$object, $cacheable=true) {
+	return Intra_View::factory($object, $cacheable);
+}
+
+/**
+ * Merge form values into object
+ */
+function intra_api_object_merge(Intra_Object &$object, $form) {
+	foreach($form as $key => $val) {
+		$object->set($key, $val);
+	}
+	return $object;
+}
+
+
+/**
+ * Retrieve current user map
+ */
+function intra_api_currentuser() {
+	global $user;
+
+	if(!$user->uid) {
+		throw new RuntimeException('Anonymous users aren\'t handled');
+	}
+	if(isset($user->intra_uid)) {
+		$r = Person::load($user->intra_uid);
+	} else {
+		try {
+			$person = Person::load(array(
+				'p_user' => $user->name,
+				'visible' => array(Intra_Object::VISIBLE, Intra_Object::HIDDEN)
+			))->current();
+			
+		} catch(Exception $e) {
+			Intra_CMS()->dfb($e);
+		}
+		if($person) {
+			$user->intra_uid = $person->get('p_id');
+			$r = $person;
+		}  else {
+			throw new OutOfBoundsException('No intra person found');
+		}
+	}
+	return $r;
+}
+
+/**
+ * Use geocode module and transform address into latlon.
+ */
+function intra_api_geocode(Intra_Object $object, $maycache=true) {
+
+	$class = intra_api_getclass($object, array('Company'));
+
+	$cid = sprintf('Intra:%s:%s:geocode', $class, $object->get('id'));
+
+	if($cache = cache_get($cid) && $maycache) {
+		return $cache->data;
+	}
+
+	switch($class) {
+		case 'Company' :
+			$location = array(
+				'name' 			=> trim($object->get('c_cname')),
+				'street'		=> trim($object->get('c_street')),
+				// 'street2',
+				'postal_code'	=> trim($object->get('c_zip')),
+				'city'			=> trim($object->get('c_city')),
+				//'state',
+				'country'		=> trim($object->get('c_country'))
+			);
+			break;
+		default :
+			throw new UnexpectedValueException('Unhandled Intra_Object class '.get_class($object));
+	}
+
+	$point = false;
+
+	if(module_exists('geocode')) {
+		$point = _intra_api_geocode_geocode($location);
+	} elseif(module_exists('gmap')) {
+		$point =  _intra_api_geocode_gmap($location);
+	} elseif(module_exists('location')) {
+		$point = _intra_api_geocode_location($location);
+	}
+
+	if($point && $class == 'Company') {
+		$object->set('c_location', $point);
+	}
+
+	cache_set($cid, $point);
+
+	return $point;
+}
+
+/**
+ * Geocoding handler for location module
+ * @see http://www.drupal.org/projects/location
+ * @todo Convert countries to use ISO code in database, and remove detection shit.
+ */
+function _intra_api_geocode_location($location) {
+	$point = false;
+	$location['source'] = LOCATION_LATLON_USER_SUBMITTED;
+
+	// Country detection shit
+	$countries = location_get_iso3166_list(true);
+	$c = t($location['country']);
+
+	if(($iso = array_search($c, $countries)) !== false) {
+		$location['country'] = $iso;
+	} elseif(module_exists('countries_api') && $c = _countries_api_iso_get_country($location['country'], 'printable_name')) {
+		$location['country'] = $c['iso2'];
+	}
+
+	_location_geo_logic($location, array(), array());
+	dfb($location);
+	if(isset($location['latitude']) && isset($location['longitude']) && $location['source']) {
+		$point = new Intra_Object_Gis_Point($location['longitude'], $location['latitude']);
+		dfb($point);
+	}
+	return $point;
+}
+
+/**
+ * Create textual presentation from address array
+ */
+function _intra_api_geocode_maptotext($map) {
+	// Generate textual presentation of address
+	$text = array();
+	if(!empty($map['name'])) {
+		$text[] = $map['name'];
+	}
+	if(!empty($map['street1'])) {
+		$text[] = $map['street1'];
+	}
+	if(!empty($map['postal_code']) && isset($map['city'])) {
+		$text[] = sprintf('%s %s', $map['postal_code'],  $map['city']);
+	} elseif(!empty($map['postal_code'])) {
+		$text[] = $map['postal_code'];
+	} elseif(!empty($map['city'])) {
+		$text[] = $map['city'];
+	}
+	if($map['country']) {
+		$text[] = $map['country'];
+	}
+
+	return $text;
+}
+
+/**
+ * Geocoding handler for geocode module
+ * @see http://www.drupal.org/projects/geocode
+ */
+function _intra_api_geocode_geocode($map) {
+
+	$text = _intra_api_geocode_maptotext($map);
+
+	$point = false;
+
+	// Loop textual presentations to try more abroad one if required
+	$handler = _intra_api_geocode_geocode_handler();
+
+	while($text) {
+		$seek =  implode(', ', $text);
+
+		if($geo = geocode($handler, $seek)) {
+			$point = new Intra_Object_Gis_Point($geo['lon'], $geo['lat']);
+			break;
+		}
+
+		array_shift($text);
+	}
+
+
+	return $point;
+}
+
+function _intra_api_geocode_gmap($map) {
+
+	$text = _intra_api_geocode_maptotext($map);
+	$point = false;
+
+	// Loop textual presentations to try more abroad one if required
+
+	while($text) {
+		$seek =  implode(', ', $text);
+
+		$geo = gmap_geocode($seek, 'fi');
+
+		if($geo['status'] == 200) {
+			$point = new Intra_Object_Gis_Point($geo['longitude'], $geo['latitude']);
+			break;
+		}
+
+		array_shift($text);
+	}
+
+	return $point;
+}
+
+/**
+ * Return geocode handler for geocode module.
+ * @see _intra_api_geocode_geocode()
+ */
+function _intra_api_geocode_geocode_handler() {
+	$handlers = geocode_handler_info();
+
+	$def = key($handlers);
+	$geocoder = variable_get('intra_geocode_handler', $def);
+	if(isset($handlers[$geocoder])) {
+		return $handlers[$geocoder]['handler'] = $geocoder;
+	} else {
+		$handlers[$def]['handler'] = $def;
+		return $handlers[$def];
+	}
+}
+
+/**
+ * Return openlayers map
+ */
+function _intra_api_openlayers_map() {
+	static $map;
+	if(!$map) {
+
+		$map = openlayers_get_preset(variable_get('intra_openlayers_preset', INTRA_API_NAME));
+		if($map)
+			$map = $map['preset_data'];
+		else
+			$map = openlayers_get_default_map();
+	}
+	return $map;
+}
+
+/**
+ * Openlayers map presets hook
+ */
+function intra_api_openlayers_presets() {
+	// Some random position which shows scandinavia
+	$center = array(
+		'lon' => '19.7218321875',
+		'lat' => '63.982544875',
+		'zoom' => '4'
+	);
+
+	// Get owner company, and lon/lat for it
+	$owner = Company::load(array('c_type' => 0));
+	if(count($owner)) {
+		$company = $owner->current();
+		if($pos = intra_api_geocode( $company )) {
+			$center['lon'] = $pos['lon'];
+			$center['lat'] = $pos['lat'];
+		}
+	}
+
+	// Build map array
+	$map = array(
+		'projection' => '4326', // Openlayers default is 4326, but 900913 is most common (due google maps)
+		'center' => $center,
+		'width' => 'auto',
+		'height' => '300px',
+		'default_layer' => 'openlayers_default_wms',
+		'options' => array(
+			'displayProjection' => '4326',
+		),
+		'controls' => array(
+			'LayerSwitcher' => true,
+			'Navigation' => true,
+			'PanZoomBar' => false,
+			'MousePosition' => false,
+		),
+		'layers' => array(),
+		'behaviors' => array()
+	);
+
+	// Add some additional layers
+	$layers = openlayers_layers_get_info();
+	if(isset($layers['openlayers_layers_osm_4326_hybrid']))
+		$map['layers'][] = 'openlayers_layers_osm_4326_hybrid';
+	if(isset($layers['intra_company_layers_companys'])) {
+		$map['layers'][] = 'intra_company_layers_companys';
+
+		$map['behaviors'][] = array(
+			'id' => 'intra_company_layers_companys_tooltip',
+			'type' => 'openlayers_behaviors_tooltip',
+			'layer' => 'intra_company_layers_companys'
+		);
+
+	}
+
+	$presets[INTRA_API_NAME] = array(
+		'preset_name' => INTRA_API_NAME,
+		'preset_title' => t('@intra Map', array('@intra' => variable_get('intra_api_name', INTRA_API_NAME))),
+		'preset_description' => t('This is the default map preset that comes with the OpenLayers module.'),
+		'preset_data' => $map
+	);
+
+	return $presets;
+}
+
+function intra_api_getclass(Intra_Object $object, array $classlist) {
+	$class = get_class($object);
+
+	while($class) {
+		if(in_array($class, $classlist)) {
+			return $class;
+		}
+		$class = get_parent_class($class);
+	}
+
+	throw new UnexpectedValueException('Did not find suitable class for '.get_class($object));
+	return false;
+}

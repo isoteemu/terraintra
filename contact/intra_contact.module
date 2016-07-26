@@ -1,0 +1,363 @@
+<?php
+
+function intra_contact_menu() {
+	$menu = array();
+
+	$menu['intra/contact/%intra_contact'] = array(
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_view',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/contact/add'] = array(
+		'title' => 'Add Contact',
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_add',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/contact/%intra_contact/edit'] = array(
+		'title' => 'Edit Contact',
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_edit',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/contact/%intra_contact/dnd'] = array(
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_dnd',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/contact/%intra_contact/ping'] = array(
+		'title' => 'Ping contact',
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_ping',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/contact/%intra_contact/nutshell'] = array(
+		'access callback' => true,
+		'page callback' => 'intra_contact_page_infobox',
+		'file' => 'inc/intra_contact.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+	);
+
+	$menu['intra/contact/%intra_contact/vcard.vcf'] = array(
+		'access callback' => true,
+		'desctiption' => t('Download contact vCard'),
+		'file' => 'inc/vcard.pages.inc',
+		'page callback' => 'intra_contact_page_vcard',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	return $menu;
+}
+
+function intra_contact_perm() {
+  return array('access contact profiles');
+}
+
+function intra_contact_init() {
+	set_include_path(
+		dirname(__FILE__).'/lib'
+		.PATH_SEPARATOR.get_include_path()
+	);
+
+	drupal_add_css(drupal_get_path('module', 'intra_contact').'/css/infobox-activity.css');
+
+}
+
+function intra_contact_load($id) {
+
+	try {
+		$person = Person::load($id);
+
+		if($person instanceOf Person) {
+			drupal_add_link(array(
+				'rel' => 'alternate',
+				'type' => 'text/x-vcard',
+				'title' => sprintf('%s %s', $person->get('p_fname'), $person->get('p_lname')),
+				'href' => url(intra_api_url($person).'/vcard.vcf')
+			));
+			return $person;
+		}
+	} catch(UnexpectedValueException $e) {
+		Intra_CMS()->dfb($e);
+	}
+
+	return false;
+}
+
+/**
+ * Hook for hook_intra_detect_contact(),
+ * @param $Contact
+ *   Person object to populate.
+ * @param $keyword
+ *   Keyword(s) to use to populate $contact
+ */
+function intra_contact_intra_detect_contact(Person &$contact, $keyword=null) {
+	$keyword = trim($keyword);
+	if(valid_email_address($keyword)) {
+		$contact->add('p_email', $keyword);
+	} elseif($keyword != null) {
+		_intra_contact_format_name($contact, $keyword);
+	}
+
+	if($email = $contact->get('p_email')) {
+		$row = _intra_contact_trialuser($email);
+		if($row) {
+			$contact->add('p_fname', trim($row['fname']));
+			$contact->add('p_lname', trim($row['lname']));
+			$contact->add('p_country', trim($row['country']));
+			$contact->add('p_dname', trim($row['department']));
+
+			// Try to detect company id
+			try {
+				$company = _intra_company_search($row['company']);
+				if($company instanceOf Company) {
+					$contact->add('c_id', $company->get('c_id'));
+					$contact->add('p_country', $company->get('c_country'));
+				}
+			} catch(Exception $e) {
+				Intra_CMS()->dfb($e->getMessage());
+			}
+		}
+
+		// Search first comma, and presume it's in european format (firstname.lastname@domain.com)
+		if(!$contact->get('p_fname') && !$contact->get('p_lname') && preg_match('/^([a-zA-Z]+\.[a-zA-Z\.]+)@/', $email, $nameMatch)) {
+			$name = ucwords(strtolower(str_replace('.', ' ', $nameMatch[1])));
+			_intra_contact_format_name($contact, $name);
+		}
+
+		if(!$contact->get('c_id')) {
+			// Search all instances where email ends up with same domain
+			list($user, $domain) = explode('@', $email);
+			$list = Person_Email::load(array(
+				'%pe_email' => '%@'.$domain
+			));
+			// a bit sub-optimal...
+			$company = false;
+			foreach($list as $peEmail) {
+				$_company = Person::load($peEmail->get('p_id'))->get('c_id');
+				if(!$company) {
+					$company = $_company;
+				} elseif($company != $_company) {
+					$company = false;
+					break;
+				}
+			}
+			if($company)
+				$contact->add('c_id', $company);
+			
+		}
+
+	}
+
+	// Set country from company
+	if($c_id = $contact->get('c_id')) {
+		$contact->add('p_country', Company::load($c_id)->get('c_country'));
+	}
+}
+
+
+function _intra_contact_format_name(&$contact, $keyword) {
+	if( preg_match('/^([^\s]+)\s+([^\s]+)$/', $keyword, $match) ) {
+		// Two part name
+		$contact->add('p_fname', $match[1]);
+		$contact->add('p_lname', $match[2]);
+	}  elseif( preg_match('/^([^,]+),[\s]*(.*)$/', $keyword, $match) ) {
+		// Comma separated name
+		$contact->add('p_fname', $match[2]);
+		$contact->add('p_lname', $match[1]);
+	} else {
+		$parts = preg_split('/(\s+|,\s*)/', $keyword);
+		if(count($parts) >= 2) {
+			// Try searching lowercase name prefix to indicate surmane prefix (like von Herz)
+			$fname = array_shift($parts);
+			$lnameSuffix = array_pop($parts);
+			$lname = '';
+			$fNamePart = true;
+			while($namePart = array_shift($parts)) {;
+				$first_char = $namePart[0];
+				if($fNamePart) {
+					if(strtolower($first_char) == $first_char) {
+						$lname .= " $namePart";
+						$fNamePart = false;
+					} else {
+						$fname .= " $namePart";
+					}
+				} else {
+					$lname .= " $namePart";
+				}
+			}
+
+			$contact->add('p_fname', $fname);
+			$contact->add('p_lname', trim("$lname $lnameSuffix"));
+		} else {
+			// Bah
+			$contact->add('p_lname', $keyword);
+		}
+	}
+}
+
+/**
+ * Hook for detecting company properties.
+ */
+function intra_contact_intra_detect_company(Company &$company) {
+
+	if($email = $company->get('c_email')) {
+		$row = _intra_contact_trialuser($email);
+		if($row) {
+			Intra_CMS()->dfb($row, "Company detect");
+			$company->add('c_cname', $row['company']);
+			$company->add('c_country', $row['country']);
+		}
+	}
+
+}
+
+/**
+ * Try lookuping trial user data by email.
+ * @param $email
+ *   Email to lookup
+ * @return array
+ *   Assocative array of attributes found.
+ */
+function _intra_contact_trialuser($email) {
+	static $cache = array();
+	$email = trim($email);
+	$email = drupal_strtolower($email);
+
+	if(!isset($cache[$email])) {
+		$res = Person::db()->query('SELECT `fname`, `lname`, `country`, `department`, `company` FROM `trial_users` WHERE `email` LIKE '.Person::db()->quote($email).' ORDER BY `date` ASC');
+		if($res->numRows() >= 1) {
+			$cache[$email] = $res->fetchRow(MDB2_FETCHMODE_ASSOC);
+		} else {
+			$cache[$email] = false;
+		}
+		
+	}
+	return $cache[$email];
+}
+
+function intra_contact_vote(Person $contact) {
+	if(!module_exists('votingapi')) return false;
+
+	$votes[] = array(
+		'content_id' => $contact->get('id'),
+		'content_type' => 'intra_contact',
+		'value' => 1,
+	);
+
+	return votingapi_set_votes($votes, false);
+}
+
+/// TODO
+function intra_contact_get_votes($contact) {
+	if(!module_exists('votingapi')) return false;
+
+    $criteria = array(
+		'content_id' => $contact->get('id'),
+		'content_type' => 'intra_contact',
+		'function' => 'count',
+	);
+
+	$results = votingapi_select_results($criteria);
+	return $results[0]['value'];
+}
+
+/**
+ * Create company contact listing
+ */
+function intra_contact_intra_company_infobox($company) {
+	$r = array();
+	if($company->people()->count()) {
+		$r['contacts'] = array(
+			'#title' => t('Contacts'),
+			'#value' => theme('intra_company_contacts', $company)
+		);
+	}
+	return $r;
+}
+
+function intra_contact_theme() {
+	return array(
+/*
+		'intra_contact_infobox' => array(
+			'arguments' => array('company' => null),
+			'template' => 'company-infobox'
+		),
+*/
+		'intra_contact_details' => array(
+			'arguments' => array('contact' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contact-details'
+		),
+
+		'intra_contact_infobox' => array(
+			'arguments' => array('contact' => null, 'activity' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contact-infobox'
+		),
+
+		// Contact simple vcard entry
+		'intra_contact' => array(
+			'arguments' => array('contact' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+		),
+
+		'intra_contact_emails' => array(
+			'arguments' => array('emails' => array()),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contact-emails'
+		),
+
+		'intra_contact_email' => array(
+			'arguments' => array('email' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contact-email'
+		),
+
+
+		'intra_contact_vcard_download' => array(
+			'arguments' => array('contact' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+		),
+
+		'intra_contact_details-contact_select' => array(
+			'arguments' => array('contact' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+			'preprocess functions' => array('template_preprocess_intra_contact_details'),
+			'template' => 'contact_details-contact_select'
+		),
+
+		'intra_contact_select' => array(
+			'arguments' => array('contacts' => array(), 'company' => null),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contact-select'
+		),
+		'intra_company_contacts' => array(
+			'arguments' => array('company' => array(), 'attributes' => array()),
+			'file' => 'inc/intra_contact.pages.inc',
+			'template' => 'contacts-list'
+		),
+	);
+}
+

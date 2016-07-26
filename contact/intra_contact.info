@@ -1,0 +1,6 @@
+name = Intra Contacts
+description = Contact functions for Intra
+package = Intra
+dependencies[] = intra_api
+version = 1
+core = 6.x

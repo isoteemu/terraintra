@@ -1,0 +1,7 @@
+name = Intra Search Api
+description = Common API for Intra search
+package = Intra
+dependencies[] = intra_api
+dependencies[] = search
+version = 1
+core = 6.x

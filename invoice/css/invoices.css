@@ -1,0 +1,72 @@
+@media screen {
+	.invoice a.in_nr {
+		background: #D9D9C2 url('../image/hCalendar.png') left center no-repeat;
+		overflow:hidden;
+		white-space:nowrap;
+		border-bottom:1px dashed #000;
+
+		padding-left:18px;
+		padding-right:3px;
+
+		border-radius:3px;
+		-moz-border-radius:3px;
+		-webkit-border-radius:3px;
+	}
+
+	.invoice a.in_nr.has-tooltip {
+		cursor:help;
+	}
+
+	.invoice a.in_nr:hover {
+		background: #D9D9C2 url('../image/hCalendar:hover.png') left center no-repeat;
+		border-bottom-style: solid;
+	}
+
+	.invoice a.in_nr, .invoice a.in_nr:hover {
+		text-decoration:none;
+	}
+}
+
+.invoice {
+}
+
+del.invoice,
+span.invoice,
+ins.invoice {
+	white-space:nowrap;
+	display:inline-block;
+}
+
+.invoice > .ui-icon:first-child {
+	float:left;
+}
+
+.invoices.ui-dialog {
+	width:100%;
+}
+
+.in_vat_pros {
+	font-family:"Liberation Mono", monospace, "Courier New", "Courier";
+}
+
+.invoice .in_payment_date .ui-icon {
+	float:left;
+}
+
+.invoice .in_rem > :first-child {
+	margin-top:0;
+}
+
+.invoice .in_rem > :last-child {
+	margin-bottom:0;
+}
+
+@media print {
+	.invoices .ui-accordion-content {
+		display: block !important;
+		clear:both;
+	}
+	.invoices .ui-accordion .ui-accordion-header {
+		clear:both;
+	}
+}

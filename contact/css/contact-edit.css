@@ -1,0 +1,22 @@
+.container-inline.name div {
+	display:block;
+}
+
+.container-inline.name label {
+/*
+	float:left;
+	width:10em;
+	clear:left;
+	text-align:right;
+
+	padding-right:1.2em;
+*/
+}
+
+.container-inline.name label span.form-required {
+	margin-right:-1.2em;
+}
+
+#edit-c-cname-wrapper {
+	margin-bottom: 0;
+}

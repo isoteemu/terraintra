@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://terraintra/skin/overlay.css" type="text/css"?>
+<?xul-overlay href="chrome://messenger/content/baseMenuOverlay.xul"?>
+<overlay id="terraintra#contactviewer" 
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script type="application/x-javascript">
+	<![CDATA[
+
+		var terraIntra = {
+			baseurl: "http://intra.example.com/drupal",
+
+			initOverlay: function() {
+				var menu = document.getElementById("mailContext");
+				menu.addEventListener("popupshowing", terraIntra.contextMenu.onPopupShowin, false);
+			},
+
+			viewContact: function(email) {
+				if(!email)
+					email = terraIntra.getMessageEmail();
+
+				var url = terraIntra.baseurl+"/search/intra_search_contact/scope:email+"+escape(email)+"?playlist=vanhalen";
+				return terraIntra.openContentTab(url);
+			},
+
+			viewCompany: function(email) {
+
+				if(!email)
+					email = terraIntra.getMessageEmail();
+
+				var url = terraIntra.baseurl+"/search/intra_search_company/scope:email+"+escape(email)+"?playlist=vanhalen";
+				return terraIntra.openContentTab(url);
+			},
+
+			/**
+			 * Get current email message "From" address
+			 * @return String 
+			 *   Email address
+			 */
+			getMessageEmail: function() {
+				var msg = gFolderDisplay.selectedMessage;
+
+				// Parse email-address
+				var msgHeaderParser = Components.classes["@mozilla.org/messenger/headerparser;1"]
+										.getService(Components.interfaces.nsIMsgHeaderParser);
+
+				var strippedAddresses = {};
+				var fullNames = {};
+				var names = {};
+				var numAddresses =  0;
+
+				msgHeaderParser.parseHeadersWithArray(msg.author, strippedAddresses,
+													names, fullNames, numAddresses);
+				var email = strippedAddresses.value[0];
+				dump("Email to search: "+email+"\n");
+				return email;
+			},
+
+			/**
+			 * Open new content tab.
+			 * @param url
+			 *    Url to open
+			 */
+			openContentTab: function(url, reverse) {
+				// Snipplet to open in new tab
+				/*
+				var bgLoad = gPrefBranch.getBoolPref("mail.tabs.loadInBackground");
+				if (event.shiftKey)
+					bgLoad = !bgLoad;
+				*/
+
+				document.getElementById("tabmail").openTab("contentTab", {
+					contentPage: url,
+					background: false
+				});
+			},
+
+			doAction: function(email, aAction) {
+				if(email) {
+					dump(email+"\n");
+					switch(aAction) {
+						case 'contact' :
+							terraIntra.viewContact(email);
+							break;
+						case 'company' :
+							terraIntra.viewCompany(email);
+							break;
+						default :
+							dump("terraIntra.emailPopup(): Unknown action: "+aAction);
+							break;
+					}
+				}
+			},
+
+			emailPopup: function(emailAddressNode, aAction) {
+				var email = emailAddressNode.getAttribute("emailAddress");
+			},
+		};
+
+		terraIntra.contextMenu = function(aAction) {
+			var url = gContextMenu.linkURL;
+			var email = getEmail(url);
+			terraIntra.doAction(email, aAction);
+		};
+
+		terraIntra.contextMenu.onPopupShowin = function() {
+			// If is mailtolink...
+			gContextMenu.showItem("mailContext-terraintra", gContextMenu.onMailtoLink && !gContextMenu.inThreadPane);
+		};
+
+		window.addEventListener("load", terraIntra.initOverlay, false);
+	]]>
+	</script>
+	<menupopup id="otherActionsPopup">
+
+		<menuseparator id="TerraIntraActionSeparator"/>
+		<menuitem id="openContactInTerraIntra"
+				  class="terraIntra-action"
+				  label="View Contact"
+				  oncommand="terraIntra.viewContact();"/>
+		<menuitem id="openCompanyInTerraIntra"
+				  class="terraIntra-action"
+				  label="View Company"
+				  oncommand="terraIntra.viewCompany();"/>
+	</menupopup>
+
+	<menupopup id="mailContext">
+		<menu id="mailContext-terraintra" label="TerraIntra" 
+			class="terraIntra-menu">
+			<menupopup id="mailContext-terraintraPopup">
+				<menuitem id="openContactInTerraIntra"
+						class="terraIntra-action"
+						label="View Contact"
+						oncommand="terraIntra.contextMenu('contact');"/>
+				<menuitem id="openCompanyInTerraIntra"
+						class="terraIntra-action"
+						label="View Company"
+						oncommand="terraIntra.contextMenu('company');"/>
+			</menupopup>
+		</menu>
+	</menupopup>
+
+	<popup id="emailAddressPopup">
+		<menuseparator id="emailPopupTerraIntraActionSeparator"/>
+		<menuitem id="emailPopupOpenContactInTerraIntra"
+				  class="terraIntra-action"
+				  label="View Contact"
+				  oncommand="terraIntra.emailPopup(findEmailNodeFromPopupNode(document.popupNode, 'emailAddressPopup'), 'contact');"/>
+		<menuitem id="emailPopupOpenCompanyInTerraIntra"
+				  class="terraIntra-action"
+				  label="View Company"
+				  oncommand="terraIntra.emailPopup(findEmailNodeFromPopupNode(document.popupNode, 'emailAddressPopup'), 'company');"/>
+	</popup>
+
+</overlay>

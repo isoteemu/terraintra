@@ -1,0 +1,50 @@
+.infobox .activities {
+	max-height:16em;
+	overflow-y: scroll;
+	overflow-x: hidden;	
+}
+
+.infobox dialog.activity .contact {
+	float:left;
+}
+
+
+.infobox dialog.activity dd {
+	margin:0;
+	padding:0;
+}
+
+.infobox dialog.activity .row {
+	clear:left;
+}
+
+.infobox dialog.activity .row ~ .row {
+/*	border-top: 1px solid #AAA; */
+	margin-top:0.5em;
+	padding-top:0.5em;
+}
+
+.infobox dialog.activity .row > * {
+	vertical-align:top;
+}
+
+.infobox dialog.activity .ui-widget-content strong {
+	font-weight:inherit;
+}
+
+.infobox dialog.activity div.contact {
+}
+
+.infobox dialog.activity .info {
+	font-size:80%;
+	display:block;
+	clear:both;
+}
+
+.infobox dialog.activity .info > * {
+	display: inline;
+}
+
+.infobox dialog.activity .info > :before {
+	content: "|";
+}

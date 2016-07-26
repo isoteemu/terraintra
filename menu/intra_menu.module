@@ -1,0 +1,48 @@
+<?php
+
+function intra_menu_init() {
+
+	if(isset($_GET['intra_menu_init'])) {
+
+		$url = $_GET['q'];
+		$params = $_GET;
+		unset($params['intra_menu_init']);
+
+		$target = url($url, array(
+			'absolute' => true,
+			'query' => $target
+		));
+
+		$company = menu_get_object('intra_company', 2, $url);
+		if($company) {
+			$c_id = $company->get('c_id');
+		}
+		if(!$company) {
+			$person = menu_get_object('intra_contact', 2, $url);
+			if($person)
+				$c_id = $person->getCompany()->get('c_id');
+		}
+
+		if($c_id) {
+			$top = 'top.asp?Action=login&USERID='.intra_api_currentuser()->get('p_id').'&C_ID='.$c_id;
+
+			drupal_goto('https://www.example.com/terraintra/admin/index.asp?TOPFRAME='.urlencode($top).'&HOMEFRAME='.urlencode($target));
+		}
+	} elseif(isset($_GET['from_intra_menu'])) {
+		// Strip username and password from url
+		$url = $_GET['q'];
+		$params = $_GET;
+		unset($params['from_intra_menu']);
+
+		$target = url($url, array(
+			'absolute' => true,
+			'query' => $target
+		));
+
+		drupal_goto($target);
+
+	} else {
+		$path = drupal_get_path('module', 'intra_menu');
+		drupal_add_js($path.'/js/Intra.Ui.Menu.js');
+	}
+}

@@ -1,0 +1,7 @@
+fieldset.ui-tabs-panel legend {
+	display:none;
+}
+
+.vat-id-check #edit-c-vat-wrapper {
+	display:inline;
+}

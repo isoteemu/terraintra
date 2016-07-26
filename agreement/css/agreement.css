@@ -1,0 +1,25 @@
+.agreement-nr {
+	font-family:"Liberation Mono", monospace, "Courier New", "Courier";
+}
+
+.agreement ~ .serials {
+	clear:left;
+	padding-top:0.6em;
+}
+
+.serials {
+	display:block;
+}
+
+.serials .count {
+	color:#808080;
+	float:right;
+	padding-left:5px;
+	padding-right:2px;
+}
+
+.serials .text {
+	overflow:hidden;
+	white-space:nowrap;
+	width:auto;
+}

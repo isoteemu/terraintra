@@ -1,0 +1,4 @@
+content	terraintra	chrome/content/
+skin	terraintra	default	chrome/skin/default/
+
+overlay	chrome://messenger/content/messenger.xul	chrome://terraintra/content/overlay.xul

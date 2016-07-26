@@ -1,0 +1,24 @@
+all<?xml version="1.0"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+
+	<Description about="urn:mozilla:install-manifest">
+		<em:id>contact@intra.example.com</em:id>
+		<em:type>2</em:type>
+		<em:name>TerraINTRA Contact Viewer</em:name>
+		<em:version>0.1.3.1</em:version>
+		<em:creator>Teemu Autto</em:creator>
+		<em:description>TerraINTRA bridge for Thunderbird.</em:description>
+		<em:homepageURL>http://intra.example.com/</em:homepageURL>
+		<em:iconURL>chrome://terraintra/skin/images/pc-32x32.png</em:iconURL>
+		<em:updateURL>https://www.example.com/~god/terraintra/update.rdf</em:updateURL>
+
+		<em:targetApplication>
+			<Description>
+				<em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
+				<em:minVersion>1.5</em:minVersion>
+				<em:maxVersion>3.1.*</em:maxVersion>
+			</Description>
+		</em:targetApplication>
+	</Description>      
+</RDF>

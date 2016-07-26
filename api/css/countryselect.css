@@ -1,0 +1,260 @@
+
+@media screen {
+	.countryselect option:before {
+		content:url('../image/flag-spacer.gif');
+		width:16px;
+		height:16px;
+		background: url('../image/shiny-sprite.png') no-repeat;
+		margin-right: 0.4em;
+		background-position: 0 -1459px;
+	}
+
+	.country-name:after {
+		content:url('../image/flag-spacer.gif');
+		width:16px;
+		height:16px;
+		background: url('../image/shiny-sprite.png') no-repeat;
+		margin-left: 0.2em;
+		background-position: 0 -1459px;
+	}
+}
+
+.countryselect option[value ="Andorra"]:before, .country-name[title ="Andorra"]:after { background-position: 0 -10px; } 
+.countryselect option[value ="United Arab Emirates"]:before, .country-name[title ="United Arab Emirates"]:after { background-position: 0 -31px; } 
+.countryselect option[value ="Afghanistan"]:before, .country-name[title ="Afghanistan"]:after { background-position: 0 -52px; } 
+.countryselect option[value ="Antigua and Barbuda"]:before, .country-name[title ="Antigua and Barbuda"]:after { background-position: 0 -73px; } 
+.countryselect option[value ="Anguilla"]:before, .country-name[title ="Anguilla"]:after { background-position: 0 -94px; } 
+.countryselect option[value ="Albania"]:before, .country-name[title ="Albania"]:after { background-position: 0 -115px; } 
+.countryselect option[value ="Armenia"]:before, .country-name[title ="Armenia"]:after { background-position: 0 -136px; } 
+.countryselect option[value ="Netherlands Antilles"]:before, .country-name[title ="Netherlands Antilles"]:after { background-position: 0 -157px; } 
+.countryselect option[value ="Angola"]:before, .country-name[title ="Angola"]:after { background-position: 0 -178px; } 
+.countryselect option[value ="Argentina"]:before, .country-name[title ="Argentina"]:after { background-position: 0 -199px; } 
+.countryselect option[value ="American Samoa"]:before, .country-name[title ="American Samoa"]:after { background-position: 0 -220px; } 
+.countryselect option[value ="Austria"]:before, .country-name[title ="Austria"]:after { background-position: 0 -241px; } 
+.countryselect option[value ="Australia"]:before, .country-name[title ="Australia"]:after { background-position: 0 -262px; } 
+.countryselect option[value ="Aruba"]:before, .country-name[title ="Aruba"]:after { background-position: 0 -283px; } 
+.countryselect option[value ="Azerbaijan"]:before, .country-name[title ="Azerbaijan"]:after { background-position: 0 -325px; } 
+.countryselect option[value ="Bosnia and Herzegovina"]:before, .country-name[title ="Bosnia and Herzegovina"]:after { background-position: 0 -346px; } 
+.countryselect option[value ="Barbados"]:before, .country-name[title ="Barbados"]:after { background-position: 0 -367px; } 
+.countryselect option[value ="Bangladesh"]:before, .country-name[title ="Bangladesh"]:after { background-position: 0 -388px; } 
+.countryselect option[value ="Belgium"]:before, .country-name[title ="Belgium"]:after { background-position: 0 -409px; } 
+.countryselect option[value ="Burkina Faso"]:before, .country-name[title ="Burkina Faso"]:after { background-position: 0 -430px; } 
+.countryselect option[value ="Bulgaria"]:before, .country-name[title ="Bulgaria"]:after { background-position: 0 -451px; } 
+.countryselect option[value ="Bahrain"]:before, .country-name[title ="Bahrain"]:after { background-position: 0 -472px; } 
+.countryselect option[value ="Burundi"]:before, .country-name[title ="Burundi"]:after { background-position: 0 -493px; } 
+.countryselect option[value ="Benin"]:before, .country-name[title ="Benin"]:after { background-position: 0 -514px; } 
+.countryselect option[value ="Bermuda"]:before, .country-name[title ="Bermuda"]:after { background-position: 0 -535px; } 
+.countryselect option[value ="Brunei Darussalam"]:before, .country-name[title ="Brunei Darussalam"]:after { background-position: 0 -556px; } 
+.countryselect option[value ="Bolivia"]:before, .country-name[title ="Bolivia"]:after { background-position: 0 -577px; } 
+.countryselect option[value ="Brazil"]:before, .country-name[title ="Brazil"]:after { background-position: 0 -598px; } 
+.countryselect option[value ="Bahamas"]:before, .country-name[title ="Bahamas"]:after { background-position: 0 -619px; } 
+.countryselect option[value ="Bhutan"]:before, .country-name[title ="Bhutan"]:after { background-position: 0 -640px; } 
+.countryselect option[value ="Bouvet Island"]:before, .country-name[title ="Bouvet Island"]:after { background-position: 0 -661px; } 
+.countryselect option[value ="Botswana"]:before, .country-name[title ="Botswana"]:after { background-position: 0 -682px; } 
+.countryselect option[value ="Belarus"]:before, .country-name[title ="Belarus"]:after { background-position: 0 -703px; } 
+.countryselect option[value ="Belize"]:before, .country-name[title ="Belize"]:after { background-position: 0 -724px; } 
+.countryselect option[value ="Canada"]:before, .country-name[title ="Canada"]:after { background-position: 0 -745px; } 
+.countryselect option[value ="Cocos (Keeling) Islands"]:before, .country-name[title ="Cocos (Keeling) Islands"]:after { background-position: 0 -787px; } 
+.countryselect option[value ="Congo, the Democratic Republic of the"]:before, .country-name[title ="Congo, the Democratic Republic of the"]:after { background-position: 0 -808px; } 
+.countryselect option[value ="Central African Republic"]:before, .country-name[title ="Central African Republic"]:after { background-position: 0 -829px; } 
+.countryselect option[value ="Congo"]:before, .country-name[title ="Congo"]:after { background-position: 0 -850px; } 
+.countryselect option[value ="Switzerland"]:before, .country-name[title ="Switzerland"]:after { background-position: 0 -871px; } 
+.countryselect option[value ="Cote D'Ivoire"]:before, .country-name[title ="Cote D'Ivoire"]:after { background-position: 0 -892px; } 
+.countryselect option[value ="Cook Islands"]:before, .country-name[title ="Cook Islands"]:after { background-position: 0 -913px; } 
+.countryselect option[value ="Chile"]:before, .country-name[title ="Chile"]:after { background-position: 0 -934px; } 
+.countryselect option[value ="Cameroon"]:before, .country-name[title ="Cameroon"]:after { background-position: 0 -955px; } 
+.countryselect option[value ="China"]:before, .country-name[title ="China"]:after { background-position: 0 -976px; } 
+.countryselect option[value ="Colombia"]:before, .country-name[title ="Colombia"]:after { background-position: 0 -997px; } 
+.countryselect option[value ="Costa Rica"]:before, .country-name[title ="Costa Rica"]:after { background-position: 0 -1018px; } 
+.countryselect option[value ="Cuba"]:before, .country-name[title ="Cuba"]:after { background-position: 0 -1060px; } 
+.countryselect option[value ="Cape Verde"]:before, .country-name[title ="Cape Verde"]:after { background-position: 0 -1081px; } 
+.countryselect option[value ="Christmas Island"]:before, .country-name[title ="Christmas Island"]:after { background-position: 0 -1102px; } 
+.countryselect option[value ="Cyprus"]:before, .country-name[title ="Cyprus"]:after { background-position: 0 -1123px; } 
+.countryselect option[value ="Czech Republic"]:before, .country-name[title ="Czech Republic"]:after { background-position: 0 -1144px; } 
+.countryselect option[value ="Germany"]:before, .country-name[title ="Germany"]:after { background-position: 0 -1165px; } 
+.countryselect option[value ="Djibouti"]:before, .country-name[title ="Djibouti"]:after { background-position: 0 -1186px; } 
+.countryselect option[value ="Denmark"]:before, .country-name[title ="Denmark"]:after { background-position: 0 -1207px; } 
+.countryselect option[value ="Dominica"]:before, .country-name[title ="Dominica"]:after { background-position: 0 -1228px; } 
+.countryselect option[value ="Dominican Republic"]:before, .country-name[title ="Dominican Republic"]:after { background-position: 0 -1249px; } 
+.countryselect option[value ="Algeria"]:before, .country-name[title ="Algeria"]:after { background-position: 0 -1270px; } 
+.countryselect option[value ="Ecuador"]:before, .country-name[title ="Ecuador"]:after { background-position: 0 -1291px; } 
+.countryselect option[value ="Estonia"]:before, .country-name[title ="Estonia"]:after { background-position: 0 -1312px; } 
+.countryselect option[value ="Egypt"]:before, .country-name[title ="Egypt"]:after { background-position: 0 -1333px; } 
+.countryselect option[value ="Western Sahara"]:before, .country-name[title ="Western Sahara"]:after { background-position: 0 -1354px; } 
+.countryselect option[value ="Eritrea"]:before, .country-name[title ="Eritrea"]:after { background-position: 0 -1396px; } 
+.countryselect option[value ="Spain"]:before, .country-name[title ="Spain"]:after { background-position: 0 -1417px; } 
+.countryselect option[value ="Ethiopia"]:before, .country-name[title ="Ethiopia"]:after { background-position: 0 -1438px; } 
+.countryselect option[value ="Finland"]:before, .country-name[title ="Finland"]:after { background-position: 0 -1501px; } 
+.countryselect option[value ="Fiji"]:before, .country-name[title ="Fiji"]:after { background-position: 0 -1522px; } 
+.countryselect option[value ="Falkland Islands (Malvinas)"]:before, .country-name[title ="Falkland Islands (Malvinas)"]:after { background-position: 0 -1543px; } 
+.countryselect option[value ="Micronesia, Federated States of"]:before, .country-name[title ="Micronesia, Federated States of"]:after { background-position: 0 -1564px; } 
+.countryselect option[value ="Faroe Islands"]:before, .country-name[title ="Faroe Islands"]:after { background-position: 0 -1585px; } 
+.countryselect option[value ="France"]:before, .country-name[title ="France"]:after { background-position: 0 -1606px; } 
+.countryselect option[value ="Gabon"]:before, .country-name[title ="Gabon"]:after { background-position: 0 -1627px; } 
+.countryselect option[value ="United Kingdom"]:before, .country-name[title ="United Kingdom"]:after { background-position: 0 -1648px; } 
+.countryselect option[value ="Grenada"]:before, .country-name[title ="Grenada"]:after { background-position: 0 -1669px; } 
+.countryselect option[value ="Georgia"]:before, .country-name[title ="Georgia"]:after { background-position: 0 -1690px; } 
+.countryselect option[value ="French Guiana"]:before, .country-name[title ="French Guiana"]:after { background-position: 0 -1711px; } 
+.countryselect option[value ="Ghana"]:before, .country-name[title ="Ghana"]:after { background-position: 0 -1732px; } 
+.countryselect option[value ="Gibraltar"]:before, .country-name[title ="Gibraltar"]:after { background-position: 0 -1753px; } 
+.countryselect option[value ="Greenland"]:before, .country-name[title ="Greenland"]:after { background-position: 0 -1774px; } 
+.countryselect option[value ="Gambia"]:before, .country-name[title ="Gambia"]:after { background-position: 0 -1795px; } 
+.countryselect option[value ="Guinea"]:before, .country-name[title ="Guinea"]:after { background-position: 0 -1816px; } 
+.countryselect option[value ="Guadeloupe"]:before, .country-name[title ="Guadeloupe"]:after { background-position: 0 -1837px; } 
+.countryselect option[value ="Equatorial Guinea"]:before, .country-name[title ="Equatorial Guinea"]:after { background-position: 0 -1858px; } 
+.countryselect option[value ="Greece"]:before, .country-name[title ="Greece"]:after { background-position: 0 -1879px; } 
+.countryselect option[value ="South Georgia and the South Sandwich Islands"]:before, .country-name[title ="South Georgia and the South Sandwich Islands"]:after { background-position: 0 -1900px; } 
+.countryselect option[value ="Guatemala"]:before, .country-name[title ="Guatemala"]:after { background-position: 0 -1921px; } 
+.countryselect option[value ="Guam"]:before, .country-name[title ="Guam"]:after { background-position: 0 -1942px; } 
+.countryselect option[value ="Guinea-Bissau"]:before, .country-name[title ="Guinea-Bissau"]:after { background-position: 0 -1963px; } 
+.countryselect option[value ="Guyana"]:before, .country-name[title ="Guyana"]:after { background-position: 0 -1984px; } 
+.countryselect option[value ="Hong Kong"]:before, .country-name[title ="Hong Kong"]:after { background-position: -26px -10px; } 
+.countryselect option[value ="Heard Island and Mcdonald Islands"]:before, .country-name[title ="Heard Island and Mcdonald Islands"]:after { background-position: -26px -31px; } 
+.countryselect option[value ="Honduras"]:before, .country-name[title ="Honduras"]:after { background-position: -26px -52px; } 
+.countryselect option[value ="Croatia"]:before, .country-name[title ="Croatia"]:after { background-position: -26px -73px; } 
+.countryselect option[value ="Haiti"]:before, .country-name[title ="Haiti"]:after { background-position: -26px -94px; } 
+.countryselect option[value ="Hungary"]:before, .country-name[title ="Hungary"]:after { background-position: -26px -115px; } 
+.countryselect option[value ="Indonesia"]:before, .country-name[title ="Indonesia"]:after { background-position: -26px -136px; } 
+.countryselect option[value ="Ireland"]:before, .country-name[title ="Ireland"]:after { background-position: -26px -157px; } 
+.countryselect option[value ="Israel"]:before, .country-name[title ="Israel"]:after { background-position: -26px -178px; } 
+.countryselect option[value ="India"]:before, .country-name[title ="India"]:after { background-position: -26px -199px; } 
+.countryselect option[value ="British Indian Ocean Territory"]:before, .country-name[title ="British Indian Ocean Territory"]:after { background-position: -26px -220px; } 
+.countryselect option[value ="Iraq"]:before, .country-name[title ="Iraq"]:after { background-position: -26px -241px; } 
+.countryselect option[value ="Iran, Islamic Republic of"]:before, .country-name[title ="Iran, Islamic Republic of"]:after { background-position: -26px -262px; } 
+.countryselect option[value ="Iceland"]:before, .country-name[title ="Iceland"]:after { background-position: -26px -283px; } 
+.countryselect option[value ="Italy"]:before, .country-name[title ="Italy"]:after { background-position: -26px -304px; } 
+.countryselect option[value ="Jamaica"]:before, .country-name[title ="Jamaica"]:after { background-position: -26px -325px; } 
+.countryselect option[value ="Jordan"]:before, .country-name[title ="Jordan"]:after { background-position: -26px -346px; } 
+.countryselect option[value ="Japan"]:before, .country-name[title ="Japan"]:after { background-position: -26px -367px; } 
+.countryselect option[value ="Kenya"]:before, .country-name[title ="Kenya"]:after { background-position: -26px -388px; } 
+.countryselect option[value ="Kyrgyzstan"]:before, .country-name[title ="Kyrgyzstan"]:after { background-position: -26px -409px; } 
+.countryselect option[value ="Cambodia"]:before, .country-name[title ="Cambodia"]:after { background-position: -26px -430px; } 
+.countryselect option[value ="Kiribati"]:before, .country-name[title ="Kiribati"]:after { background-position: -26px -451px; } 
+.countryselect option[value ="Comoros"]:before, .country-name[title ="Comoros"]:after { background-position: -26px -472px; } 
+.countryselect option[value ="Saint Kitts and Nevis"]:before, .country-name[title ="Saint Kitts and Nevis"]:after { background-position: -26px -493px; } 
+.countryselect option[value ="Korea, Democratic People's Republic of"]:before, .country-name[title ="Korea, Democratic People's Republic of"]:after { background-position: -26px -514px; } 
+.countryselect option[value ="Korea, Republic of"]:before, .country-name[title ="Korea, Republic of"]:after { background-position: -26px -535px; } 
+.countryselect option[value ="Kuwait"]:before, .country-name[title ="Kuwait"]:after { background-position: -26px -556px; } 
+.countryselect option[value ="Cayman Islands"]:before, .country-name[title ="Cayman Islands"]:after { background-position: -26px -577px; } 
+.countryselect option[value ="Kazakhstan"]:before, .country-name[title ="Kazakhstan"]:after { background-position: -26px -598px; } 
+.countryselect option[value ="Lao People's Democratic Republic"]:before, .country-name[title ="Lao People's Democratic Republic"]:after { background-position: -26px -619px; } 
+.countryselect option[value ="Lebanon"]:before, .country-name[title ="Lebanon"]:after { background-position: -26px -640px; } 
+.countryselect option[value ="Saint Lucia"]:before, .country-name[title ="Saint Lucia"]:after { background-position: -26px -661px; } 
+.countryselect option[value ="Liechtenstein"]:before, .country-name[title ="Liechtenstein"]:after { background-position: -26px -682px; } 
+.countryselect option[value ="Sri Lanka"]:before, .country-name[title ="Sri Lanka"]:after { background-position: -26px -703px; } 
+.countryselect option[value ="Liberia"]:before, .country-name[title ="Liberia"]:after { background-position: -26px -724px; } 
+.countryselect option[value ="Lesotho"]:before, .country-name[title ="Lesotho"]:after { background-position: -26px -745px; } 
+.countryselect option[value ="Lithuania"]:before, .country-name[title ="Lithuania"]:after { background-position: -26px -766px; } 
+.countryselect option[value ="Luxembourg"]:before, .country-name[title ="Luxembourg"]:after { background-position: -26px -787px; } 
+.countryselect option[value ="Latvia"]:before, .country-name[title ="Latvia"]:after { background-position: -26px -808px; } 
+.countryselect option[value ="Libyan Arab Jamahiriya"]:before, .country-name[title ="Libyan Arab Jamahiriya"]:after { background-position: -26px -829px; } 
+.countryselect option[value ="Morocco"]:before, .country-name[title ="Morocco"]:after { background-position: -26px -850px; } 
+.countryselect option[value ="Monaco"]:before, .country-name[title ="Monaco"]:after { background-position: -26px -871px; } 
+.countryselect option[value ="Moldova, Republic of"]:before, .country-name[title ="Moldova, Republic of"]:after { background-position: -26px -892px; } 
+.countryselect option[value ="Montenegro"]:before, .country-name[title ="Montenegro"]:after { background-position: -26px -913px; } 
+.countryselect option[value ="Madagascar"]:before, .country-name[title ="Madagascar"]:after { background-position: -26px -935px; } 
+.countryselect option[value ="Marshall Islands"]:before, .country-name[title ="Marshall Islands"]:after { background-position: -26px -956px; } 
+.countryselect option[value ="Macedonia, the Former Yugoslav Republic of"]:before, .country-name[title ="Macedonia, the Former Yugoslav Republic of"]:after { background-position: -26px -977px; } 
+.countryselect option[value ="Mali"]:before, .country-name[title ="Mali"]:after { background-position: -26px -998px; } 
+.countryselect option[value ="Myanmar"]:before, .country-name[title ="Myanmar"]:after { background-position: -26px -1019px; } 
+.countryselect option[value ="Mongolia"]:before, .country-name[title ="Mongolia"]:after { background-position: -26px -1040px; } 
+.countryselect option[value ="Macao"]:before, .country-name[title ="Macao"]:after { background-position: -26px -1061px; } 
+.countryselect option[value ="Northern Mariana Islands"]:before, .country-name[title ="Northern Mariana Islands"]:after { background-position: -26px -1082px; } 
+.countryselect option[value ="Martinique"]:before, .country-name[title ="Martinique"]:after { background-position: -26px -1103px; } 
+.countryselect option[value ="Mauritania"]:before, .country-name[title ="Mauritania"]:after { background-position: -26px -1124px; } 
+.countryselect option[value ="Montserrat"]:before, .country-name[title ="Montserrat"]:after { background-position: -26px -1145px; } 
+.countryselect option[value ="Malta"]:before, .country-name[title ="Malta"]:after { background-position: -26px -1166px; } 
+.countryselect option[value ="Mauritius"]:before, .country-name[title ="Mauritius"]:after { background-position: -26px -1187px; } 
+.countryselect option[value ="Maldives"]:before, .country-name[title ="Maldives"]:after { background-position: -26px -1208px; } 
+.countryselect option[value ="Malawi"]:before, .country-name[title ="Malawi"]:after { background-position: -26px -1229px; } 
+.countryselect option[value ="Mexico"]:before, .country-name[title ="Mexico"]:after { background-position: -26px -1250px; } 
+.countryselect option[value ="Malaysia"]:before, .country-name[title ="Malaysia"]:after { background-position: -26px -1271px; } 
+.countryselect option[value ="Mozambique"]:before, .country-name[title ="Mozambique"]:after { background-position: -26px -1292px; } 
+.countryselect option[value ="Namibia"]:before, .country-name[title ="Namibia"]:after { background-position: -26px -1313px; } 
+.countryselect option[value ="New Caledonia"]:before, .country-name[title ="New Caledonia"]:after { background-position: -26px -1334px; } 
+.countryselect option[value ="Niger"]:before, .country-name[title ="Niger"]:after { background-position: -26px -1355px; } 
+.countryselect option[value ="Norfolk Island"]:before, .country-name[title ="Norfolk Island"]:after { background-position: -26px -1376px; } 
+.countryselect option[value ="Nigeria"]:before, .country-name[title ="Nigeria"]:after { background-position: -26px -1397px; } 
+.countryselect option[value ="Nicaragua"]:before, .country-name[title ="Nicaragua"]:after { background-position: -26px -1418px; } 
+.countryselect option[value ="Netherlands"]:before, .country-name[title ="Netherlands"]:after { background-position: -26px -1439px; } 
+.countryselect option[value ="Norway"]:before, .country-name[title ="Norway"]:after { background-position: -26px -1460px; } 
+.countryselect option[value ="Nepal"]:before, .country-name[title ="Nepal"]:after { background-position: -26px -1481px; } 
+.countryselect option[value ="Nauru"]:before, .country-name[title ="Nauru"]:after { background-position: -26px -1502px; } 
+.countryselect option[value ="Niue"]:before, .country-name[title ="Niue"]:after { background-position: -26px -1523px; } 
+.countryselect option[value ="New Zealand"]:before, .country-name[title ="New Zealand"]:after { background-position: -26px -1544px; } 
+.countryselect option[value ="Oman"]:before, .country-name[title ="Oman"]:after { background-position: -26px -1565px; } 
+.countryselect option[value ="Panama"]:before, .country-name[title ="Panama"]:after { background-position: -26px -1586px; } 
+.countryselect option[value ="Peru"]:before, .country-name[title ="Peru"]:after { background-position: -26px -1607px; } 
+.countryselect option[value ="French Polynesia"]:before, .country-name[title ="French Polynesia"]:after { background-position: -26px -1628px; } 
+.countryselect option[value ="Papua New Guinea"]:before, .country-name[title ="Papua New Guinea"]:after { background-position: -26px -1649px; } 
+.countryselect option[value ="Philippines"]:before, .country-name[title ="Philippines"]:after { background-position: -26px -1670px; } 
+.countryselect option[value ="Pakistan"]:before, .country-name[title ="Pakistan"]:after { background-position: -26px -1691px; } 
+.countryselect option[value ="Poland"]:before, .country-name[title ="Poland"]:after { background-position: -26px -1712px; } 
+.countryselect option[value ="Saint Pierre and Miquelon"]:before, .country-name[title ="Saint Pierre and Miquelon"]:after { background-position: -26px -1733px; } 
+.countryselect option[value ="Pitcairn"]:before, .country-name[title ="Pitcairn"]:after { background-position: -26px -1754px; } 
+.countryselect option[value ="Puerto Rico"]:before, .country-name[title ="Puerto Rico"]:after { background-position: -26px -1775px; } 
+.countryselect option[value ="Palestinian Territory, Occupied"]:before, .country-name[title ="Palestinian Territory, Occupied"]:after { background-position: -26px -1796px; } 
+.countryselect option[value ="Portugal"]:before, .country-name[title ="Portugal"]:after { background-position: -26px -1817px; } 
+.countryselect option[value ="Palau"]:before, .country-name[title ="Palau"]:after { background-position: -26px -1838px; } 
+.countryselect option[value ="Paraguay"]:before, .country-name[title ="Paraguay"]:after { background-position: -26px -1859px; } 
+.countryselect option[value ="Qatar"]:before, .country-name[title ="Qatar"]:after { background-position: -26px -1880px; } 
+.countryselect option[value ="Reunion"]:before, .country-name[title ="Reunion"]:after { background-position: -26px -1901px; } 
+.countryselect option[value ="Romania"]:before, .country-name[title ="Romania"]:after { background-position: -26px -1922px; } 
+.countryselect option[value ="Serbia"]:before, .country-name[title ="Serbia"]:after { background-position: -26px -1943px; } 
+.countryselect option[value ="Russian Federation"]:before, .country-name[title ="Russian Federation"]:after { background-position: -26px -1964px; } 
+.countryselect option[value ="Rwanda"]:before, .country-name[title ="Rwanda"]:after { background-position: -26px -1985px; } 
+.countryselect option[value ="Saudi Arabia"]:before, .country-name[title ="Saudi Arabia"]:after { background-position: -52px -10px; } 
+.countryselect option[value ="Solomon Islands"]:before, .country-name[title ="Solomon Islands"]:after { background-position: -52px -31px; } 
+.countryselect option[value ="Seychelles"]:before, .country-name[title ="Seychelles"]:after { background-position: -52px -52px; } 
+.countryselect option[value ="Sudan"]:before, .country-name[title ="Sudan"]:after { background-position: -52px -94px; } 
+.countryselect option[value ="Sweden"]:before, .country-name[title ="Sweden"]:after { background-position: -52px -115px; } 
+.countryselect option[value ="Singapore"]:before, .country-name[title ="Singapore"]:after { background-position: -52px -136px; } 
+.countryselect option[value ="Saint Helena"]:before, .country-name[title ="Saint Helena"]:after { background-position: -52px -157px; } 
+.countryselect option[value ="Slovenia"]:before, .country-name[title ="Slovenia"]:after { background-position: -52px -178px; } 
+.countryselect option[value ="Svalbard and Jan Mayen"]:before, .country-name[title ="Svalbard and Jan Mayen"]:after { background-position: -52px -199px; } 
+.countryselect option[value ="Slovakia"]:before, .country-name[title ="Slovakia"]:after { background-position: -52px -220px; } 
+.countryselect option[value ="Sierra Leone"]:before, .country-name[title ="Sierra Leone"]:after { background-position: -52px -241px; } 
+.countryselect option[value ="San Marino"]:before, .country-name[title ="San Marino"]:after { background-position: -52px -262px; } 
+.countryselect option[value ="Senegal"]:before, .country-name[title ="Senegal"]:after { background-position: -52px -283px; } 
+.countryselect option[value ="Somalia"]:before, .country-name[title ="Somalia"]:after { background-position: -52px -304px; } 
+.countryselect option[value ="Suriname"]:before, .country-name[title ="Suriname"]:after { background-position: -52px -325px; } 
+.countryselect option[value ="Sao Tome and Principe"]:before, .country-name[title ="Sao Tome and Principe"]:after { background-position: -52px -346px; } 
+.countryselect option[value ="El Salvador"]:before, .country-name[title ="El Salvador"]:after { background-position: -52px -367px; } 
+.countryselect option[value ="Syrian Arab Republic"]:before, .country-name[title ="Syrian Arab Republic"]:after { background-position: -52px -388px; } 
+.countryselect option[value ="Swaziland"]:before, .country-name[title ="Swaziland"]:after { background-position: -52px -409px; } 
+.countryselect option[value ="Turks and Caicos Islands"]:before, .country-name[title ="Turks and Caicos Islands"]:after { background-position: -52px -430px; } 
+.countryselect option[value ="Chad"]:before, .country-name[title ="Chad"]:after { background-position: -52px -451px; } 
+.countryselect option[value ="French Southern Territories"]:before, .country-name[title ="French Southern Territories"]:after { background-position: -52px -472px; } 
+.countryselect option[value ="Togo"]:before, .country-name[title ="Togo"]:after { background-position: -52px -493px; } 
+.countryselect option[value ="Thailand"]:before, .country-name[title ="Thailand"]:after { background-position: -52px -514px; } 
+.countryselect option[value ="Tajikistan"]:before, .country-name[title ="Tajikistan"]:after { background-position: -52px -535px; } 
+.countryselect option[value ="Tokelau"]:before, .country-name[title ="Tokelau"]:after { background-position: -52px -556px; } 
+.countryselect option[value ="Timor-Leste"]:before, .country-name[title ="Timor-Leste"]:after { background-position: -52px -577px; } 
+.countryselect option[value ="Turkmenistan"]:before, .country-name[title ="Turkmenistan"]:after { background-position: -52px -598px; } 
+.countryselect option[value ="Tunisia"]:before, .country-name[title ="Tunisia"]:after { background-position: -52px -619px; } 
+.countryselect option[value ="Tonga"]:before, .country-name[title ="Tonga"]:after { background-position: -52px -640px; } 
+.countryselect option[value ="Turkey"]:before, .country-name[title ="Turkey"]:after { background-position: -52px -661px; } 
+.countryselect option[value ="Trinidad and Tobago"]:before, .country-name[title ="Trinidad and Tobago"]:after { background-position: -52px -682px; } 
+.countryselect option[value ="Tuvalu"]:before, .country-name[title ="Tuvalu"]:after { background-position: -52px -703px; } 
+.countryselect option[value ="Taiwan, Province of China"]:before, .country-name[title ="Taiwan, Province of China"]:after { background-position: -52px -724px; } 
+.countryselect option[value ="Tanzania, United Republic of"]:before, .country-name[title ="Tanzania, United Republic of"]:after { background-position: -52px -745px; } 
+.countryselect option[value ="Ukraine"]:before, .country-name[title ="Ukraine"]:after { background-position: -52px -766px; } 
+.countryselect option[value ="Uganda"]:before, .country-name[title ="Uganda"]:after { background-position: -52px -787px; } 
+.countryselect option[value ="United States Minor Outlying Islands"]:before, .country-name[title ="United States Minor Outlying Islands"]:after { background-position: -52px -808px; } 
+.countryselect option[value ="United States"]:before, .country-name[title ="United States"]:after { background-position: -52px -829px; } 
+.countryselect option[value ="Uruguay"]:before, .country-name[title ="Uruguay"]:after { background-position: -52px -850px; } 
+.countryselect option[value ="Uzbekistan"]:before, .country-name[title ="Uzbekistan"]:after { background-position: -52px -871px; } 
+.countryselect option[value ="Holy See (Vatican City State)"]:before, .country-name[title ="Holy See (Vatican City State)"]:after { background-position: -52px -892px; } 
+.countryselect option[value ="Saint Vincent and the Grenadines"]:before, .country-name[title ="Saint Vincent and the Grenadines"]:after { background-position: -52px -913px; } 
+.countryselect option[value ="Venezuela"]:before, .country-name[title ="Venezuela"]:after { background-position: -52px -934px; } 
+.countryselect option[value ="Virgin Islands, British"]:before, .country-name[title ="Virgin Islands, British"]:after { background-position: -52px -955px; } 
+.countryselect option[value ="Virgin Islands, U.s."]:before, .country-name[title ="Virgin Islands, U.s."]:after { background-position: -52px -976px; } 
+.countryselect option[value ="Viet Nam"]:before, .country-name[title ="Viet Nam"]:after { background-position: -52px -997px; } 
+.countryselect option[value ="Vanuatu"]:before, .country-name[title ="Vanuatu"]:after { background-position: -52px -1018px; } 
+.countryselect option[value ="Wallis and Futuna"]:before, .country-name[title ="Wallis and Futuna"]:after { background-position: -52px -1060px; } 
+.countryselect option[value ="Samoa"]:before, .country-name[title ="Samoa"]:after { background-position: -52px -1081px; } 
+.countryselect option[value ="Yemen"]:before, .country-name[title ="Yemen"]:after { background-position: -52px -1102px; } 
+.countryselect option[value ="Mayotte"]:before, .country-name[title ="Mayotte"]:after { background-position: -52px -1123px; } 
+.countryselect option[value ="South Africa"]:before, .country-name[title ="South Africa"]:after { background-position: -52px -1144px; } 
+.countryselect option[value ="Zambia"]:before, .country-name[title ="Zambia"]:after { background-position: -52px -1165px; } 
+.countryselect option[value ="Zimbabwe"]:before, .country-name[title ="Zimbabwe"]:after { background-position: -52px -1186px; } 

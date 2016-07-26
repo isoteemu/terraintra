@@ -1,0 +1,993 @@
+<?php
+
+define('C_TYPE_DISTRIBUTOR', 1);
+define('C_TYPE_OWNER', 0);
+
+function intra_company_help($path, $arg) {
+	$o = array();
+	switch($path) {
+		case 'intra/company/add#company' :
+			$o[]= t('Company magical string can be:');
+			$o[]= '<ul>';
+			$o[]= '<li><strong>'.t('Company name').':</strong><br/>';
+			$o[]= t('Needs explanation?');
+			$o[]= '</li>';
+			$o[]= '<li><strong>'.t('VAT ID').':</strong><br/>';
+			$o[]= t('If Vat ID is detected, calls to EC registry and requests basic information.');
+			$o[]= '</li>';
+			$o[]= '<li><strong>'.t('Company website url').':</strong><br/>';
+			$o[]= t('If is url, visits the page and checks for semantic information.');
+			$o[]= '</ul>';
+			break;
+	}
+
+	return implode("\n", $o);
+}
+
+function intra_company_menu() {
+	$menu = array();
+
+	$menu['intra/company'] = array(
+		'access callback' => true,
+		'title' => 'Companys',
+		'description' => 'Intra companys',
+		'menu_name' => 'intra',
+	);
+
+	$menu['intra/company/add'] = array(
+		'title' => 'New company',
+		'description' => 'Add new company',
+		'access callback' => true,
+		'page callback' => 'intra_company_page_add',
+		'file' => 'inc/intra_company.pages.inc',
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/map'] = array(
+		'title' => 'Companys of the World',
+		'description' => t('Intra companys laid on world map'),
+		'access callback' => true,
+		'page callback' => 'intra_company_page_map',
+		'file' => 'inc/intra_company.pages.inc',
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company'] = array(
+		'title' => 'Company',
+		'title callback'	=> 'intra_company_titlecallback',
+		'title arguments'	=> array(2),
+		'access callback' => true,
+		'page callback' => 'intra_company_page',
+		'page arguments' => array(2),
+		'file' => 'inc/intra_company.pages.inc',
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company/view'] = array(
+		'title' => 'Company',
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+		'weight' => -10,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company/edit'] = array(
+		'title' => 'Edit Company',
+		'access callback' => true,
+		'page callback' => 'intra_company_page_edit',
+		'file' => 'inc/intra_company.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_LOCAL_TASK,
+		'menu_name' => 'intra'
+	);
+
+	// Openlayers API has changed too much to be used.
+	// Replaced by gmap
+	if(module_exists('gmap') || module_exists('openlayers')) {
+		$menu['intra/company/%intra_company/map'] = array(
+			'title' => 'Region map',
+			'access callback' => true,
+			'page callback' => 'intra_company_page_map',
+			'file' => 'inc/intra_company.pages.inc',
+			'page arguments' => array(2),
+			'type' => MENU_LOCAL_TASK,
+			'menu_name' => 'intra'
+		);
+	}
+
+	$menu['intra/company/%intra_company/nutshell'] = array(
+		'access callback' => true,
+		'page callback' => 'intra_company_page_infobox',
+		'file' => 'inc/intra_company.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company/dnd'] = array(
+		'access callback' => true,
+		'page callback' => 'intra_company_page_dnd',
+		'file' => 'inc/intra_company.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company/ping'] = array(
+		'title' => 'Ping company',
+		'access callback' => true,
+		'page callback' => 'intra_company_page_ping',
+		'file' => 'inc/intra_company.pages.inc',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK,
+		'menu_name' => 'intra'
+	);
+
+	$menu['intra/company/%intra_company/vcard.vcf'] = array(
+		'access callback' => true,
+		'desctiption' => t('Download company vCard'),
+		'file' => 'inc/vcard.pages.inc',
+		'page callback' => 'intra_company_page_vcard',
+		'page arguments' => array(2),
+		'type' => MENU_CALLBACK
+	);
+
+	return $menu;
+}
+
+function intra_company_init() {
+	// Set include path
+	set_include_path(
+		dirname(__FILE__).'/lib'
+		.PATH_SEPARATOR.get_include_path()
+	);
+}
+
+function &intra_company_load($id) {
+	try {
+		$company = Company::load($id);
+
+		if($company instanceOf Company) {
+			drupal_add_link(array(
+				'rel' => 'alternate',
+				'type' => 'text/x-vcard',
+				'title' => $company->get('c_cname'),
+				'href' => url(intra_api_url($company).'/vcard.vcf')
+			));
+			return $company;
+		}
+	} catch(UnexpectedValueException $e) {
+		Intra_CMS()->dfb($e);
+	}
+
+	return false;
+}
+
+/**
+ * Hook for hook_intra_detect_company()
+ * @see intra_company_page_add()
+ */
+function intra_company_intra_detect_company(Company &$company, $keyword=null) {
+	// Try by calling to EC vatid registry
+	$vatid = drupal_strtoupper($keyword);
+	$vatid = preg_replace('/[^A-Z0-9]/', '', $vatid);
+
+	$url = trim($keyword);
+	if(valid_url($url, true)) {
+		$company->set('c_url', $url);
+	} elseif(valid_email_address($url)) {
+		$company->set('c_email', $url);
+	} else {
+		$company->add('c_cname', $keyword);
+	}
+
+	try {
+		$vatidCheck = _intra_company_intra_detect_company_vatid($company, $vatid);
+	} catch(Exception $e) {
+		Intra_CMS()->dfb($e);
+	}
+
+
+	$url = $company->get('c_url');
+
+	// Try using email domain as url.
+	// It is not save due nature of them being maybe hotmail/gmail etc.
+	if(!$url && $email = $company->get('c_email')) {
+		$userReg = '[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+';
+		$domainReg = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
+		if(preg_match("/^$userReg@($domainReg)$/", $email, $match)) {
+			$url = "http://www.{$match[1]}";
+			Intra_CMS()->dfb($url, "Domain by email");
+		}
+	}
+	if($url) {
+		_intra_company_intra_detect_company_hcard($company, $url);
+		if(!$company->get('c_country') && module_exists('countries_api')) {
+			if(preg_match('%^[a-z]+://[^/]+\.([a-z]+)($|/.*)$%i', $url, $match)) {
+				$skiplist = array('com', 'org', 'net');
+				if(!in_array($match[1], $skiplist)) {
+					if($country = countries_api_get_country($match[1]))
+						$company->add('c_country', $country['printable_name']);
+				}
+			}
+		}
+	}
+
+	$company->add('c_type', 2);
+
+	$company->add('prospect_of', intra_company_detect_prospect($company, 'of'));
+	$company->add('prospect_by', intra_company_detect_prospect($company, 'by'));
+}
+
+/**
+ * Detect company by vatid.
+ * If is valid vatid, calls to EC database (@see intra_company_vatid()),
+ * and tries to parse company info. Different countries provide different
+ * level of data, so this is a bit of quess work.
+ * @param $company Company
+ *   Company which to populate
+ * @param $vatid String
+ *   Vatid to lookup.
+ * @return Bool
+ */
+function _intra_company_intra_detect_company_vatid(Company &$company, $vatid) {
+	try {
+		$vatData = intra_company_vatid($vatid);
+		if($vatData['status'] == 'success') {
+			$company->set('c_vat', $vatid);
+
+			// Empty values are signed by three dashes
+			if($vatData['data']['name'] != '---') {
+				$company->set('c_cname', $vatData['data']['name']);
+			}
+			if($vatData['data']['address'] != '---') {
+				$addr = intra_company_parseaddr($vatData['data']['address']);
+
+				if($addr['country'])
+					$company->set('c_country', $addr['country']);
+				if($addr['city'])
+					$company->set('c_city', $addr['city']);
+				if($addr['zip'] && $addr['state'])
+					$company->set('c_zip', $addr['state'].' '.$addr['zip']);
+				elseif($addr['zip'])
+					$company->set('c_zip', $addr['zip']);
+				if($addr['street'])
+					$company->set('c_street', $addr['street']);
+			}
+			if($vatData['data']['countryCode'] && module_exists('countries_api')) {
+				$country = countries_api_get_country($vatData['data']['countryCode']);
+				if($country)
+					$company->set('c_country', $country['printable_name']);
+			}
+			return true;
+		}
+	} catch( Exception $e ) {
+		dfb('VatID check: '.$e->getMessage());
+	}
+	return false;
+}
+
+/**
+ * Microformat Company data lookup.
+ * Looks up microformat data from company website, and populates company data
+ * if information is found.
+ * @param $company Company
+ *   Company which to populate
+ * @param $url String
+ *   Url to lookup data.
+ */
+function _intra_company_intra_detect_company_hcard(Company &$company, $url) {
+	if(!function_exists('tidy_parse_string')) {
+		Intra_CMS()->dfb('No tidy function, can not parse hcard');
+		return false;
+	}
+
+	try {
+		// Drupal hkit is an extended class for hKit, which uses drupal_http_request
+		// to retrieve http data.
+		$hKit = new Drupal_HKit();
+
+		$result = $hKit->getByURL('hcard', $url);
+		Intra_CMS()->dfb($result, "hKit parse result for $url");
+	} catch( Exception $e ) {
+		Intra_CMS()->dfb($e);
+		return;
+	}
+
+	if($result && count($result)) {
+		$hcard = $result[0];
+
+		foreach($result as $candidate) {
+			// ADD url check
+			if($candidate['org']) {
+				$hcard = $candidate;
+				break;
+			}
+		}
+	}
+
+	if($hcard) {
+		if(isset($hcard['org'])) {
+			$company->set('c_cname', $hcard['org']);
+		} elseif($hcard['fn']) {
+			$company->set('c_cname', $hcard['fn']);
+		}
+
+		if(isset($hcard['adr'])) {
+			if(isset($hcard['adr']['street-address']))
+				$company->set('c_street', $hcard['adr']['street-address']);
+			if(isset($hcard['adr']['post-office-box']))
+				$company->set('c_box', $hcard['adr']['post-office-box']);
+			if(isset($hcard['adr']['locality']))
+				$company->set('c_city', $hcard['adr']['locality']);
+			if(isset($hcard['adr']['postal-code']))
+				$company->set('c_zip', $hcard['adr']['postal-code']);
+			if(isset($hcard['adr']['country-name']))
+				$company->set('c_country', $hcard['adr']['country-name']);
+		}
+		if(isset($hcard['tel'])) {
+			foreach($hcard['tel'] as $num) {
+				if(strtolower($num['type']) == 'phone' && $num['value']) {
+					$company->set('c_phone', $num['value']);
+				} elseif(strtolower($num['type']) == 'fax' && $num['value']) {
+					$company->set('c_telefax', $num['value']);
+				}
+			}
+		}
+
+		if(isset($hcard['logo']))
+			$company->set('c_logo', $hcard['logo']);
+
+		if(isset($hcard['url']) && valid_url($hcard['url'], true))
+			$company->set('c_url', $hcard['url']);
+	}
+}
+
+/**
+ * Vote company as important.
+ * User can vote companys multiple times, basically every time he
+ * clicks company.
+ * @todo add vote rotting
+ */
+function intra_company_vote(Company $company) {
+	if(!module_exists('votingapi')) return false;
+
+	$votes[] = array(
+		'content_id' => $company->get('id'),
+		'content_type' => 'intra_company',
+		'value' => 1,
+	);
+
+	votingapi_set_votes($votes, false);
+	return true;
+}
+
+/**
+ * Retrieve company votes
+ */
+function intra_company_get_votes(Company &$company) {
+	if(!module_exists('votingapi')) return false;
+
+    $criteria = array(
+		'content_id' => $company->get('id'),
+		'content_type' => 'intra_company',
+		'function' => 'count',
+	);
+
+	$results = votingapi_select_results($criteria);
+	return $results[0]['value'];
+}
+
+/**
+ * Openlayers layer info hook.
+ * Fetch company geos from cache, and map as openlayers layer
+ * @ingroup openlayers
+ */
+function intra_company_openlayers_layers_info() {
+	$info['intra_company_layers_companys'] = array(
+		'name' => t('Intra Companys'),
+		'callback' => 'intra_company_openlayers_layers_process',
+		'file' => drupal_get_path('module', 'intra_company').'/intra_company.module',
+	);
+
+	return $info;
+}
+
+/**
+ * Cron hook
+ */
+function intra_company_cron() {
+	// Add company geolocations, if missing
+	$limit = variable_get('search_cron_limit', 100);
+
+	$res = Company::db()->query('SELECT `c_id` FROM Company WHERE c_id != 0 AND c_location IS NULL ORDER BY RAND() LIMIT 0, '.$limit);
+	while(list($cid) = $res->fetchRow()) {
+		$company = Company::load($cid);
+		intra_api_geocode($company);
+		$company->save();
+	}
+
+	Company::dbCommit();
+
+	cache_clear_all('intra_companys_layer', 'cache');
+}
+
+/**
+ * Process intra company layer.
+ */
+function intra_company_openlayers_layers_process($layer=null) {
+	if (!is_string($layer)) {
+		return FALSE;
+	}
+
+	$layer_data = array();
+
+	switch($layer) {
+		case 'intra_company_layers_companys' :
+			$features = array();
+
+			if($cache = cache_get('intra_companys_layer')) {
+				$features = $cache->data;
+			} else {
+				foreach(Company::load(array('!c_location' => '')) as $company) {
+					$view = intra_api_view($company);
+					$logo = $view->favicon();
+					$geo = $company->get('c_location');
+					$features[$company->get('c_id')] = array(
+						'lat' => $geo['lat'],
+						'lon' => $geo['lon'],
+						'attributes' => array(
+							'icon' => (string) $logo['src'],
+							'date' => $company->get('c_regdate'),
+							'name' => (string) $logo.$view->get('c_cname'),
+						),
+						'style' => array(
+							'fillOpacity' => 0.8,
+							'externalGraphic' => (string) $logo['src'],
+							'graphicWidth' => (int) $logo['width'],
+							'graphicHeight' => (int) $logo['height'],
+							'graphicXOffset' => -ceil((int)$logo['width']/2),
+							'graphicYOffset' => -ceil((int)$logo['height']/2),
+						),
+					);
+				}
+				cache_set('intra_companys_layer', $features);
+			}
+
+			$layer_data = array(
+				'id' => $layer,
+				'type' => 'Vector',
+				'name' => t('Intra Companys'),
+				'features' => $features,
+			);
+
+			break;
+	}
+
+	return $layer_data;
+}
+
+/**
+ * Perform VAT id check
+ */
+function intra_company_vatid($vatid,  $useCache = true) {
+	$cleanVatid = check_plain($vatid);
+
+	if($vatid != $cleanVatid) {
+		return array(
+			'status' => 'error',
+			'data' => t('Vat id was not clean string, and contained illegal characters')
+		);
+	}
+
+	$cid = 'intra:company:vatid:'.$vatid;
+	if($useCache && ($cache = cache_get($cid))) {
+		//$addr = $cache->data['data']['address']
+		intra_company_parseaddr($cache->data['data']['address']);
+		return $cache->data;
+	} else {
+		$r = array(
+			'status' => 'error'
+		);
+		try {
+			$request = new Vatid($vatid);
+
+			if($request->isValid()) {
+				$r = array(
+					'status' => 'success',
+					'data' => $request->result
+				);
+				cache_set($cid, $r);
+			} else {
+				$r = array(
+					'status' => 'error'
+				);
+			}
+		} catch( RuntimeException $e ) {
+			dfb($e);
+			$r = array(
+				'status' => 'failure',
+				'data' => $e->getMessage()
+			);
+		} catch( Exception $e ) {
+			dfb($e);
+			$r = array(
+				'status' => 'failure',
+				'data' => $e->getMessage()
+			);
+		}
+		return $r;
+	}
+}
+
+/**
+ * Parse address string into array.
+ * Adapted from Horde Forms.
+ * @see http://cvs.horde.org/co.php/framework/Form/Form/Type.php?r=1.2
+ */
+function intra_company_parseaddr($address) {
+	$info = array();
+	$aus_state_regex = '(?:ACT|NSW|NT|QLD|SA|TAS|VIC|WA)';
+
+	if (preg_match('/(?s)(.*?)(?-s)\r?\n(?:(.*?)\s+)?((?:A[BL]|B[ABDHLNRST]?|C[ABFHMORTVW]|D[ADEGHLNTY]|E[CHNX]?|F[KY]|G[LUY]?|H[ADGPRSUX]|I[GMPV]|JE|K[ATWY]|L[ADELNSU]?|M[EKL]?|N[EGNPRW]?|O[LX]|P[AEHLOR]|R[GHM]|S[AEGKLMNOPRSTWY]?|T[ADFNQRSW]|UB|W[ACDFNRSV]?|YO|ZE)\d(?:\d|[A-Z])? \d[A-Z]{2})/', $address, $addressParts)) {
+		/* UK postcode detected. */
+		$info = array('country' => 'United Kingdom', 'zip' => $addressParts[3]);
+		if (!empty($addressParts[1])) {
+			$info['street'] = $addressParts[1];
+		}
+		if (!empty($addressParts[2])) {
+			$info['city'] = $addressParts[2];
+		}
+	} elseif (preg_match('/\b' . $aus_state_regex . '\b/', $address)) {
+		/* Australian state detected. */
+		/* Split out the address, line-by-line. */
+		$addressLines = preg_split('/\r?\n/', $address);
+		$info = array('country' => 'Australia');
+		for ($i = 0; $i < count($addressLines); $i++) {
+			/* See if it's the street number & name. */
+			if (preg_match('/(\d+\s*\/\s*)?(\d+|\d+[a-zA-Z])\s+([a-zA-Z ]*)/', $addressLines[$i], $lineParts)) {
+				$info['street'] = $addressLines[$i];
+				$info['streetNumber'] = $lineParts[2];
+				$info['streetName'] = $lineParts[3];
+			}
+			/* Look for "Suburb, State". */
+			if (preg_match('/([a-zA-Z ]*),?\s+(' . $aus_state_regex . ')/', $addressLines[$i], $lineParts)) {
+				$info['city'] = $lineParts[1];
+				$info['state'] = $lineParts[2];
+			}
+			/* Look for "State <4 digit postcode>". */
+			if (preg_match('/(' . $aus_state_regex . ')\s+(\d{4})/', $addressLines[$i], $lineParts)) {
+				$info['state'] = $lineParts[1];
+				$info['zip'] = $lineParts[2];
+			}
+		}
+	} elseif (preg_match('/(?s)(.*?)(?-s)\r?\n(.*)\s*,\s*(\w+)\.?\s+(\d+|[a-zA-Z]\d[a-zA-Z]\s?\d[a-zA-Z]\d)/', $address, $addressParts)) {
+		/* American/Canadian address style. */
+		$info = array('country' => 'United States');
+		if (!empty($addressParts[4]) &&
+			preg_match('|[a-zA-Z]\d[a-zA-Z]\s?\d[a-zA-Z]\d|', $addressParts[4])) {
+			$info['country'] = 'canada';
+		}
+		if (!empty($addressParts[1])) {
+			$info['street'] = $addressParts[1];
+		}
+		if (!empty($addressParts[2])) {
+			$info['city'] = $addressParts[2];
+		}
+		if (!empty($addressParts[3])) {
+			$info['state'] = $addressParts[3];
+		}
+		if (!empty($addressParts[4])) {
+			$info['zip'] = $addressParts[4];
+		}
+	} elseif (preg_match('/(?:(?s)(.*?)(?-s)(?:\r?\n|,\s*))?(?:([A-Z]{1,3})-)?(\d{4,5})\s+(.*)(?:\r?\n(.*))?/i', $address, $addressParts)) {
+
+		// European address style.
+
+		$info = array();
+		if (!empty($addressParts[1])) {
+			$info['street'] = $addressParts[1];
+		}
+		/// TODO
+		if (!empty($addressParts[2]) && module_exists('countries_api')) {
+			$country = countries_api_get_country(drupal_strtoupper($addressParts[2]));
+			if ($country) {
+				$info['country'] = $country['printable_name'];
+			}
+		}
+
+		if (!empty($addressParts[5])) {
+			$countries = _intra_company_countryselect();
+			$country = array_search(drupal_strtolower($addressParts[5]), $countries);
+			if ($country) {
+				$info['country'] = drupal_strtolower($country);
+			} elseif (!isset($info['street'])) {
+				$info['street'] = trim($addressParts[5]);
+			} else {
+				$info['street'] .= "\n" . $addressParts[5];
+			}
+		}
+		if (!empty($addressParts[3])) {
+			$info['zip'] = $addressParts[3];
+		}
+		if (!empty($addressParts[4])) {
+			$info['city'] = trim($addressParts[4]);
+		}
+	}
+
+	return $info;
+}
+
+// Current way which intra handles countries fucking blows!
+function _intra_company_countryselect() {
+	drupal_add_css(drupal_get_path('module', 'intra_api').'/css/countryselect.css');
+
+	$r = array(
+		'' => t('Select...')
+	);
+
+	if(module_exists('countries_api')) {
+		foreach(countries_api_get_list() as $lang) {
+			$r[$lang['printable_name']] = t($lang['printable_name']);
+		}
+/*
+	} elseif(module_exists('location')) {
+		return location_get_iso3166_list();
+*/
+	} else {
+		foreach(language_list('name', true) as $lang) {
+			$r[$lang->name] = t($lang->name);
+		}
+	}
+	ksort($r);
+
+	return $r;
+}
+
+/**
+ * Detect company prospect.
+ * Uses small heurestic to detect company prospect, if one is not
+ * set. This includes looking "prospect_by/of", company maintenace
+ * agreement and maintenances.
+ *
+ * This _should_ be in Company class as accessor, but on search
+ * page it'll slows down page loading significantly.
+ *
+ * @param $company
+ *   Company to look for.
+ * @param $mode
+ *   Either 'of' or 'by', depending which one to look for.
+ * @return Int
+ *   p_id of prospect person.
+ */
+function intra_company_detect_prospect(Company $company, $mode='of') {
+	if($mode == 'of') {
+		$methods = array(
+			'of',
+			'by',
+			'agreement',
+			'invoices',
+		);
+	} else {
+		$methods = array(
+			'by',
+			'invoices',
+			'agreement',
+			'of',
+		);
+	}
+
+	foreach($methods as $case) {
+		switch($case) {
+			case 'of' :
+				$of = $company->get('prospect_of');
+				break;
+			case 'by' :
+				$of =  $company->get('prospect_by');
+				break;
+			case 'agreement' :
+				$c_id = $company->get('c_id');
+				try {
+					/// A bit of this is a bit of redundant.
+					/// @see Company::_getProspectOf()
+					$agreement = Agreement::load(array('se_c_id' => $c_id))->current();
+					if(!$agreement) continue;
+					$c_id = $agreement->get('ag_dealer_c_id');
+					if(!$c_id) continue;
+
+					$_contact = Company::load($c_id)->getContact();
+					if($_contact)
+						$of = $_contact->get('p_id');
+
+					// Try looking from chgdby
+					$chgby = $agreement->get('ag_chgby');
+					if(!empty($chgby)) {
+
+						$chg = Person::load(array('p_user' => $chgby))->current();
+						if($chg && $chg->get('c_id') == $c_id) {
+							$of = $chg->get('p_id');
+						}
+					}
+
+					// Look agreement distributor contact
+				} catch(Exception $e) {
+					dfb($e);
+				}
+				break;
+
+			case 'invoices' :
+				try {
+					$rule = Intra_Filter::factory();
+					$rule->whereIn('se_c_id', $company->get('c_id'));
+					$rule->orderBy('se_id', ($mode == 'of') ? SORT_DESC : SORT_ASC)->limit(1);
+					$in_id = Intra_Product::load($rule)->get('in_id');
+					$invoice = Invoice::load($in_id);
+
+					$c_id = $invoice->get('c_id');
+
+					if($c_id != $company->get('c_id')) {
+						$_contact = Company::load($c_id)->getContact();
+						if($_contact)
+							$of = $_contact->get('p_id');
+					}
+
+					// Try looking from chgdby
+					$chgby = $invoice->get('in_chgby');
+
+					if(!empty($chgby)) {
+						$chg = Person::load(array('p_user' => $chgby))->current();
+						if($chg instanceOf Person) {
+							$of = $chg->get('p_id');
+						}
+					}
+
+				} catch(Exception $e) {
+					dfb($e);
+				}
+				break;
+		}
+		if($of) return $of;
+	}
+}
+
+/**
+ * @ingroup form_api
+ * @{
+ */
+
+/** 
+ * Function to create form element for company selection.
+ *
+ * @param $name
+ *    Name to use in form
+ * @return Array
+ *    Form structure
+ */
+function intra_company_formelement($name) {
+	$path = drupal_get_path('module', 'intra_company');
+	drupal_add_js($path.'/js/Intra.Ui.Companyselect.js');
+	drupal_add_css($path.'/css/company-select.css');
+
+	$companys = array();
+	foreach(intra_api_currentuser()->getCompany()->customerList() as $c_id => $company) {
+		$companys[$c_id] = $company['c_cname'];
+	}
+
+	asort($companys, SORT_STRING);
+
+	$element = array(
+		'#type' => 'select',
+		'#title' => t('Company'),
+		'#required' => true,
+		'#options' => $companys,
+		'#attributes' => array(
+			'class' => 'intra-companyselect'
+		),
+		'#default_value' => '',
+		'#process' => array('intra_company_formelement_process'),
+		'#element_validate' => array('intra_company_formelement_validate')
+	);
+
+//	if(user_access('intra company create')) {
+		$opt = array_reverse($element['#options'], true);
+		$opt['-1'] = t('New company');
+		$element['#options'] = array_reverse($opt, true);
+		$element['#description'] .= t('To create new company, click on [+] sign, type in company name and hit [ENTER]. Remember, hit [ENTER]. If select says "new company", you haven not hit [ENTER].');
+//	}
+
+	if(module_exists('intra_search_company')) {
+		drupal_add_js('misc/autocomplete.js');
+		drupal_add_css(drupal_get_path('module', 'intra_search_api').'/css/search.css');
+
+		if(module_exists('jquery_ui')) {
+			drupal_add_css(JQUERY_UI_PATH.'/themes/base/jquery-ui.css', 'module', 'screen');
+			#drupal_add_css(JQUERY_UI_PATH.'/themes/base/ui.tabs.css', 'module', 'screen');
+			jquery_ui_add(array('effects.highlight'));
+		}
+	}
+
+	$hidden = array(
+		'#type' => 'hidden'
+	);
+	$name = (string) $name;
+
+	return array(
+		$name.'-typed' => $hidden,
+		$name => $element
+	);
+}
+
+function intra_company_formelement_validate(&$element, &$form_state) {
+	if($form_state['values'][$element['#name']] == '-1') {
+		$c_cname = $form_state['values'][$element['#name'].'-typed'];
+		if(empty($c_cname)) {
+			form_set_error($element['#name'], t("Typed company name can't be empty"));
+		} else {
+			$company = Company::factory('Company', array('c_cname' => $c_cname));
+
+			module_invoke_all('intra_detect_company', $company, $c_cname);
+
+			$company->save();
+
+			$form_state['values'][$element['#name']] = $company->get('c_id');
+			$form_state['values'][$element['#name'].'-typed'] = $company->get('c_cname');
+			$company->get('c_id');
+		}
+	}
+}
+
+function intra_company_formelement_process(&$element, $edit, &$form_state, $form) {
+
+	if(!$element['#required']) {
+		$opt = array_reverse($element['#options'], true);
+		$opt[''] = t('Select...');
+		$element['#options'] = array_reverse($opt, true);
+	}
+
+	$c_cname = $form_state['values'][$element['#name'].'-typed'];
+	if($edit == -1 && !empty($c_cname)) {
+		$element['#options']['-1'] = $c_cname;
+	}
+
+	form_expand_ahah($element);
+
+	return $element;
+}
+
+
+/**
+ * Helper function to search company / companys by name
+ * @param $c_cname
+ *   Company name sting to search
+ * @param $prefer
+ *   Prefered company ID, that will be show even if ranking excludes it
+ * @return Array
+ *   List of companys found.
+ */
+function _intra_company_search($c_cname, $prefer = null) {
+
+	if(empty($c_cname)) return array();
+
+	// Try exact match
+	$companys = Company::load(array('%c_cname' => $c_cname, 'loadedFromDb' => true));
+
+	if(count($companys) == 1) {
+		// Exact match
+		return $companys->getChildren();
+	} elseif(module_exists('intra_search_company')) {
+		$companys = intra_search_company_search_company($c_cname);
+		$nr = count($companys);
+		if($nr == 1)
+			return current($companys);
+	}
+
+	if($nr) {
+		$match = array();
+		if($prefer) {
+			$match = Intra_Filter::factory()->whereIn('c_id', $prefer)->filterItems($companys)->current();
+		}
+
+		$limit = variable_get('company_suggest_limit', 7);
+		if(module_exists('intra_search_company')) {
+			$companys = (array) $companys;
+
+			$scores = intra_search_company_search_score($companys, $c_cname, $scope);
+			array_multisort($scores, SORT_DESC, SORT_NUMERIC, $companys);
+			$companys = array_slice($companys, 0, $limit);
+		} else {
+			$companys = (array) Intra_Filter::factory()->orderBy('c_cname', SORT_ASC)->limit(7)->filterItems($companys);
+		}
+	}
+
+	// Now, if prefered company was on search results, add it to list
+	$nr = count($companys);
+	if($nr && $match) {
+		$exists = (Intra_Filter::factory()->whereIn('c_id', $match->get('c_id'))->filterItems($companys)->count()) ? true : false;
+		if(!$exists) {
+			if($nr == $limit)
+				array_pop($companys);
+			$companys[] = $match;
+		}
+	}
+
+	return (count($companys)) ? $companys : array();
+}
+
+/**
+ * @} End of form_api
+ */
+
+
+function intra_company_titlecallback(Company $company) {
+
+//	_intra_company_page_breadcrumb($company);
+
+	return t('Company: @company', array(
+		'@company' => $company->get('c_cname')
+	));
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function intra_company_perm() {
+  return array('view');
+}
+
+function intra_company_block($op = 'list', $delta=0) {
+	switch($op) {
+		case 'list' :
+			$blocks[0] = array(
+				'info' => t('!intra Active company', array('!intra' => variable_get('intra_api_name', INTRA_API_NAME)))
+			);
+			return $blocks;
+
+		case 'view' :
+			$block = array();
+			$company = menu_get_object('intra_company', 2);
+			if(!$company) {
+				if($contact = menu_get_object('intra_contact', 2))
+					$company = $contact->getCompany();
+			}
+
+			if($company) {
+				$view = intra_api_view($company);
+				// Sections
+				$sections = module_invoke_all('intra_company_infobox', $company);
+				$block['subject'] = (string) $view;
+				$block['content'] = theme('intra_company_block', $sections);
+			}
+			return $block;
+	}
+}
+
+/**
+ * Themes hook
+ */
+function intra_company_theme() {
+	return array(
+		'intra_company_infobox' => array(
+			'arguments' => array('company' => null, 'sections' => array()),
+			'file' => 'inc/intra_company.pages.inc',
+			'template' => 'company-infobox'
+		),
+		'intra_company_block' => array(
+			'arguments' => array('sections' => array()),
+			'file' => 'inc/intra_company.pages.inc',
+			'template' => 'intra-company-block'
+		),
+		'intra_company_details' => array(
+			'arguments' => array('company' => null, 'subsidiarys' => array()),
+			'file' => 'inc/intra_company.pages.inc',
+			'template' => 'company-details'
+		),
+		'intra_company_details_lite' => array(
+			'arguments' => array('company' => null),
+			'file' => 'inc/intra_company.pages.inc',
+			'template' => 'company-details-lite'
+		),
+		'intra_company_formelement_selection' => array(
+			'arguments' => array('companys' => array(), 'key' => null, 'selected' => null),
+		)
+	);
+}

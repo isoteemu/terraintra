@@ -1,0 +1,15 @@
+.intra-companyselect option[value=""]:before {
+	width:0.4em;
+	margin-right:0.2em;
+	content:" ";
+	background-color:yellow;
+	display:inline-block;
+}
+
+.intra-companyselect option[value="-1"]:before {
+	width:0.4em;
+	margin-right:0.2em;
+	content:" ";
+	background-color:lime;
+	display:inline-block;
+}

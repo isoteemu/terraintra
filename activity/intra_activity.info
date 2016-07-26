@@ -1,0 +1,7 @@
+name = Intra Activity
+description = View contact activity
+package = Intra
+dependencies[] = intra_api
+dependencies[] = intra_contact
+version = 1
+core = 6.x

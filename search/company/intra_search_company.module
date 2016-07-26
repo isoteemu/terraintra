@@ -1,0 +1,682 @@
+<?php
+
+/**
+ * @file
+ * @todo
+ *   Country selection is such a fucking hack. I'll wanna puke my guts out.
+ */
+
+function intra_search_company_menu() {
+	$items['admin/settings/intra/search/company'] = array(
+		'title'				=> 'Company Search',
+		'description'		=> 'Settings for Intra Company Search',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_search_company_admin_settings'),
+		'access arguments'	=> array('administer site configuration'),
+		'file'				=> 'inc/admin.pages.inc',
+		'type'				=> MENU_LOCAL_TASK
+	);
+
+	$items['search/suggest/intra_search_company'] = array(
+		'page callback'      => 'intra_search_company_autosuggest',
+		'access arguments'   => array('search content'),
+		'page arguments'	 => array(3, 'c_cname'),
+		'type'               => MENU_CALLBACK,
+	);
+
+	$items['intra/company/%intra_company/ping/search'] = array(
+		'page callback'      => 'intra_search_company_ping',
+		'access arguments'   => array('search content'),
+		'page arguments'	 => array(2, 'c_cname'),
+		'type'               => MENU_CALLBACK,
+	);
+
+	return $items;
+}
+
+function intra_search_company_theme() {
+	return array(
+		'intra_search_company_suggestresult' => array(
+			'arguments' => array('company' => null),
+			'template' => 'company-autosuggest-result'
+		),
+		'intra_company_snippet' => array(
+			'arguments' => array('company' => null),
+			'template' => 'intra-company-snippet'
+		)
+	);
+}
+
+function template_preprocess_intra_search_company_suggestresult(&$variables) {
+	$variables['view'] = intra_api_view($variables['company']);
+}
+
+function template_preprocess_intra_company_snippet(&$variables) {
+	$variables['view'] = intra_api_view($variables['company']);
+}
+
+/**
+ * TODO
+ */
+function intra_search_company_ping(Company $company) {
+	if(module_enabled('votingapi'))
+		echo drupal_json(array('error' => 'missing votingapi'));
+
+	if(!isset($_SERVER['HTTP_REFERER']))
+		echo drupal_json(array('error' => 'missing referer'));
+
+	$votes[] = array(
+		'content_id' => $company->get,
+		'value_type' => 'intra_search_company',
+		'value' => 1,
+	);
+}
+
+/**
+ * Hook to alter search form.
+ */
+function intra_search_company_form_alter(&$form, $form_state, $form_id) {
+	if ($form_id == 'search_form' && $form['module']['#value'] == 'intra_search_company') {
+		$form['basic']['inline']['keys']['#autocomplete_path'] = 'search/suggest/intra_search_company';
+
+		$form['basic']['inline']['add'] = array(
+			'#type' => 'submit',
+			'#submit' => array('intra_search_company_form_add_submit'),
+			'#value' => t('Add new company'),
+			'#attributes' => array(
+				'class' => 'button-add'
+			)
+		);
+
+		if(user_access('use advanced search')) {
+
+			$keys =& $form['basic']['inline']['keys']['#default_value'];
+			$scopes = intra_search_company_searchscopes();
+
+			$form['basic']['inline']['#weight'] = (isset($form['basic']['#weight'])) ? $form['basic']['#weight'] : 1;
+
+			if($scope = search_query_extract($keys, 'scope')) {
+				$keys = search_query_insert($keys, 'scope');
+			}
+
+			$form['basic']['inline']['scope'] = array(
+				'#title' => t('Scope'),
+				'#type' => 'select',
+				'#options' => $scopes,
+				'#weight' => $form['basic']['inline']['#weight']-1,
+				'#default_value' => $scope
+			);
+
+			$form['advanced'] = array(
+				'#type' => 'fieldset',
+				'#title' => t('Advanced search'),
+				'#collapsible' => TRUE,
+				'#collapsed' => TRUE,
+				'#attributes' => array('class' => 'search-advanced'),
+				'#weight' => $form['basic']['#weight']+1
+			);
+			if($scopes['c_country']) {
+				$c_country = array();
+				if($c_country = search_query_extract($keys, 'c_country')) {
+					$c_country = str_replace('_', ' ', $c_country);
+					$c_country = explode(',', $c_country);
+					$keys = search_query_insert($keys, 'c_country');
+				}
+
+				$countries = _intra_company_countryselect();
+				$form['advanced']['c_country'] = array(
+					'#type' => 'select',
+					'#title' => t('Country'),
+					'#multiple' => true,
+					'#options'  => $countries,
+					'#size' => min(5, count($countries)),
+					'#attributes' => array(
+						'class' => 'countryselect'
+					),
+					'#default_value' => ($c_country) ? $c_country : array()
+				);
+			}
+
+			if($scopes['c_class']) {
+				$c_class = array();
+				if($c_class = search_query_extract($keys, 'c_class')) {
+					$c_class = explode(',', $c_class);
+					$keys = search_query_insert($keys, 'c_class');
+				}
+
+				$tax = Codes::arrayMap('C_CLASS');
+				array_map('t', $tax);
+
+				$form['advanced']['c_class'] = array(
+					'#type' => 'checkboxes',
+					'#title' => t('Taxonomy'),
+					'#multiple' => true,
+					'#options'  => $tax,
+					'#size' => min(5, count($tax)),
+					'#default_value' => ($c_class) ? (array) $c_class : array()
+				);
+			}
+
+			if($scopes['c_location']) {
+				$form['advanced']['c_location_distance'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Distance'),
+					'#description' => t('Distance of radius in km when using near lookup.'),
+					'#default_value' => '200'
+				);
+			}
+
+			if($magic = search_query_extract($keys, 'magic')) {
+				$keys = search_query_insert($keys, 'magic');
+			} else {
+				$magic =  variable_get('intra_search_magic', INTRA_SEARCH_MAGIC);
+			}
+
+			$form['advanced']['magic'] = array(
+				'#type' => 'select',
+				'#title' => t('Magic level'),
+				'#description' => t('How magical search should be'),
+				'#options' => array(
+					INTRA_SEARCH_MAGIC_NONE => '',
+					INTRA_SEARCH_MAGIC => t('Less magic'),
+					INTRA_SEARCH_MAGIC_MORE => t('More magic')
+				),
+				'#default_value' => $magic
+			);
+		}
+
+
+		drupal_add_css(drupal_get_path('module', 'intra_search_api').'/css/search.css');
+
+		$form['#validate'][] = 'intra_search_company_validate';
+	}
+}
+
+function intra_search_company_autosuggest($keys=null, $rkey='c_cname') {
+	$r = array();
+	if($keys && strlen($keys) > 2) {
+		$r = _intra_search_company_autosuggest($keys, $rkey);
+	}
+	drupal_json($r);
+}
+
+function _intra_search_company_autosuggest($keys=null, $rkey) {
+	$r = array();
+
+	$filter = new Intra_Filter();
+	$filter->whereRegexp('c_cname', '(^|\s+)'.preg_quote($keys));
+
+	$results = array();
+	$search = Company::load($filter);
+	if($search) {
+		foreach($search as $company) {
+			$results[$company->get('id')] = $company;
+		}
+	}
+
+	if(count($results)) {
+		$scores = intra_search_company_search_score($results, $keys, 'c_cname');
+
+		arsort($scores);
+		$i = 0;
+		$limit = variable_get('company_suggest_limit', 7);
+		foreach(array_keys($scores) as $id) {
+			if(!$results[$id]->get('loadedFromDb')) continue;
+			$name = $results[$id]->get($rkey);
+			$r[$name] = theme('intra_search_company_suggestresult', $results[$id]);
+			if($i++ == $limit) break;
+		}
+	}
+
+	return $r;
+}
+
+/**
+ * Process keys for company search.
+ * @see http://api.drupal.org/api/function/node_search_validate/6
+ */
+function intra_search_company_validate($form, &$form_state) {
+	// Initialise using any existing basic search keywords.
+	$keys = $form_state['values']['processed_keys'];
+
+	if(!empty($form_state['values']['scope'])) {
+		$keys = search_query_insert($keys, 'scope', $form_state['values']['scope']);
+	} elseif($scope = intra_search_api_detectscope($keys)) {
+		$form_state['values']['scope'] = $scope;
+		$keys = search_query_insert($keys, 'scope', $form_state['values']['scope']);
+	}
+
+	if(isset($form_state['values']['magic']) && $form_state['values']['magic'] != variable_get('intra_search_magic', INTRA_SEARCH_MAGIC)) {
+		$keys = search_query_insert($keys, 'magic', $form_state['values']['magic']);
+	}
+
+	// Country selection fucking sucks
+	if(isset($form_state['values']['c_country']) && count($form_state['values']['c_country'])) {
+		$countries = implode(',', $form_state['values']['c_country']);
+		$countries = str_replace(' ', '_', $countries);
+		$keys = search_query_insert($keys, 'c_country', $countries);
+		dfb($keys);
+	}
+	if(isset($form_state['values']['c_class']) && count($form_state['values']['c_class'])) {
+		// Remove unchecked values (0)
+		$form_state['values']['c_class'] = array_filter($form_state['values']['c_class']);
+		$keys = search_query_insert($keys, 'c_class', implode(',', $form_state['values']['c_class']));
+	}
+
+	if($form_state['values']['scope'] == 'c_location' && isset($form_state['values']['c_location_distance'])) {
+		if($gis = intra_api_geocode($form_state['values']['scope'])) {
+			$loc = sprintf('%f,%f,%d', $gis['lon'], $gis['lat'], $form_state['values']['c_location_distance']);
+			$keys = search_query_insert($keys, 'c_location', $loc);
+		} else {
+			form_set_error('keys', t('Did not find suitable location'));
+		}
+	}
+
+	if (!empty($keys)) {
+		form_set_value($form['basic']['inline']['processed_keys'], trim($keys), $form_state);
+	}
+
+}
+
+/**
+ * Redirect to company adding page.
+ */
+function intra_search_company_form_add_submit($form, &$form_state) {
+
+	$scope = $form_state['values']['scope'];
+	if(!$scope) $scope = 'c_cname';
+	$get[$scope] = $form_state['values']['keys'];
+
+	// Only one country can be defined
+	if($form_state['values']['c_country']) {
+		$get['c_country'] = current($form_state['values']['c_country']);
+	}
+
+	foreach($form_state['values']['c_class'] as $class) {
+		$get['c_class'][] = $class;
+	}
+
+	$form_state['redirect'] = array('intra/company/add', $get);
+}
+
+function intra_search_company_searchscopes() {
+	$scopes = array(
+		''			=> t('Name'),
+		'c_city'	=> t('City'),
+		'c_country'	=> t('Country'),
+		'email'	=> t('Email'),
+		'c_phone'	=> t('Phone'),
+		'c_class'	=> t('Taxonomy'),
+	);
+
+	if(module_exists('intra_search_contact')) {
+		$scopes['prospect_of'] = t('Prospect of');
+	}
+
+	if(module_exists('location')) {
+		$scopes['c_location'] = t('Near location');
+	}
+	return $scopes;
+}
+
+
+/**
+ * Implementation of hook_company_ranking()
+ * @return Array
+ *   Key is callback name, and value is human readable name.
+ *   Callback function should take two arguments:
+ *    - Array of items to rank
+ *    - String which was used as keyword
+ *   Callback return should then be array, which contains
+ *    - Key is item id, which should reflect passed items
+ *      array id
+ *    - Value is number in scale of 0-1 where, 0 means worst
+ *      possible match, and 1 is perfect match.
+ * @see intra_search_company_search_score()
+ */
+function intra_search_company_company_ranking() {
+	$r = array(
+		'intra_search_api_rank_alpahabet' => t('Alphabetically'),
+		'intra_search_api_rank_levenshtein' => t('Similarity'),
+		'intra_search_company_rank_value' => t('Customer value'),
+		'intra_search_company_rank_recent' => t('Recent activity'),
+		'intra_search_company_rank_prospect' => t('Own prospect')
+	);
+
+	if(module_exists('votingapi')) {
+//		$r['intra_search_company_rank_searchvote'] => t('Customer search zeitergeist');
+		$r['intra_search_company_rank_searchvote'] = t('Customer general zeitergeist');
+	}
+
+	return $r;
+}
+
+/**
+ * Callback for HOOK_parse_query();
+ */
+function intra_search_company_parse_query($text) {
+	return intra_search_api_parse_query($text);
+}
+
+/**
+ * Hook for searching
+ */
+function intra_search_company_search($op = 'search', $keys = NULL, $skip_access_check = FALSE) {
+
+	switch($op) {
+		case 'name' :
+			return t('Companys');
+			break;
+		case 'search' :
+
+			drupal_add_css(drupal_get_path('module', 'intra_search_company') . '/css/search-result.css');
+
+			$find = array();
+
+			$results = intra_search_company_search_company($keys);
+
+			$nr = count($results);
+			// If only one result, jump directly to it
+			if($nr == 1 && $_GET['playlist'] == 'vanhalen') {
+				$company = current($results);
+				drupal_goto(intra_api_url($company));
+			} elseif($nr) {
+				if($nr > 1) {
+
+					if($scope = search_query_extract($keys, 'scope')) {
+						$keys = search_query_insert($keys, 'scope');
+					} else {
+						$scope = intra_search_api_detectscope($keys);
+						if(!$scope)
+							$scope = 'c_cname';
+					}
+
+					$scores = intra_search_company_search_score($results, $keys, $scope);
+				}
+
+				foreach($results as $id => $result) {
+					try {
+						$prospect = null;
+						if($pid = $result->get('prospect_of')) {
+							$prospect = theme('intra_contact', $pid);
+						}
+					} catch(Exception $e) {
+						Intra_CMS()->dfb($e);
+					}
+
+					$find[$id] = array(
+						'title' => $result->get('c_cname'),
+						'link' => url(intra_api_url($result)),
+						'snippet' => theme('intra_company_snippet', $result),
+						'date' => strtotime($result->get('c_regdate')),
+						'score' => (isset($scores[$id])) ? $scores[$id] : 0,
+						'type' => (string) intra_api_view($result)->asText()->get('c_type'),
+						'user' => $prospect,
+						'object' => $result, // Addition!
+					);
+				}
+				if(count($scores) > 1) {
+					array_multisort($scores, SORT_DESC, SORT_NUMERIC, $find);
+				}
+			}
+			return $find;
+	}
+}
+
+/**
+ * Search companys
+ */
+function intra_search_company_search_company($keys) {
+	$results = array();
+	$filters = array();
+
+	if(($magic = search_query_extract($keys, 'magic')) !== null) {
+		$keys = search_query_insert($keys, 'magic');
+	} else 
+		$magic = variable_get('intra_search_magic', INTRA_SEARCH_MAGIC);
+
+	if($scope = search_query_extract($keys, 'scope')) {
+		$keys = search_query_insert($keys, 'scope');
+	} else {
+		$scope = intra_search_api_detectscope($keys);
+		if(!$scope)
+			$scope = 'c_cname';
+	}
+	if($countries = search_query_extract($keys, 'c_country')) {
+		$countries = str_replace('_', ' ', $countries);
+		$countries = explode(',', $countries);
+		$keys = search_query_insert($keys, 'c_country');
+	}
+
+	if($tax = search_query_extract($keys, 'c_class')) {
+		$keys = search_query_insert($keys, 'c_class');
+	}
+
+	if($location = search_query_extract($keys, 'c_location')) {
+		$keys = search_query_insert($keys, 'c_location');
+	}
+
+	// Detect abbrevation - All letters are on uppercase (expect "of")
+	if($scope == 'c_cname' && preg_match('/^[A-Zot]+$/', $keys) && $magic & INTRA_SEARCH_MAGIC_ABBR) {
+		$regexp = '';
+		$split = '(^|[[:space:]]|[[:punct:]])+';
+		// Compile regexp
+		foreach(str_split($keys) as $char) {
+			$_reg = '';
+			switch($char) {
+				case 't' :
+					$_reg = "{$split}the";
+					break;
+				case 'o' :
+					$_reg = "{$split}of";
+					break;
+				default:
+					$_char = quotemeta($char);
+					$_reg = "({$_char}|{$split}({$_char}[[:alnum:]]+|{$_char}))";
+			}
+			$regexp .= "($_reg)";
+		}
+
+		$regexp .= '($|[[:space:]]|[[:punct:]])';
+
+		$filters['abbrName'] = new Intra_Filter();
+		$filters['abbrName']->whereRegexp($scope, $regexp);
+
+		$filters['oldAbbrName'] = new Intra_Filter();
+		$filters['oldAbbrName']->whereLike('c_oldname', $query);
+	} elseif(module_exists('location') && $location) {
+		/// TODO
+		// Nearby lookup
+		drupal_set_message('Nearby searching not implemented yet', 'warning');
+		//list($lon, $lat, $dist) = explode(',', $location);
+		//$filters[$scope] = new Intra_Filter();
+		//$filters[$scope]->whereNearBy($scope, '%'.$keys.'%');
+	}
+
+	// Basic name search
+	$term = ($magic & INTRA_SEARCH_MAGIC_LIKE) ? '%'.$keys.'%' : $keys;
+
+	$scopes = intra_search_company_searchscopes();
+
+	if($scope == 'c_cname') {
+
+		// Generate regexp search
+		$words = intra_search_api_splitwords($keys);
+
+		$words = intra_search_api_words($words);
+		dfb($words);
+
+		$reg = intra_search_api_search_regex($words);
+		dfb($reg);
+
+		$filters['searchRegexp'] =  new Intra_Filter();
+		$filters['searchRegexp']->whereRegexp('c_cname', $reg);
+
+		$filters['oldname'] = new Intra_Filter();
+		$filters['oldname']->whereRegexp('c_oldname', $reg);
+
+	} elseif( $scope == 'prospect_of' && module_exists('intra_search_contact')) {
+		$contacts = module_invoke('intra_search_contact', 'search_contact', $keys);
+
+		if(count($contacts)) {
+			$filters['prospect_of'] = new Intra_Filter();
+			$filters['prospect_of']->whereIn('prospect_of', array_keys($contacts));
+		}
+	} elseif( $scope == 'email' && module_exists('intra_search_contact')) {
+		$p_email = search_query_insert($keys, 'scope', 'email');
+		$contacts = module_invoke('intra_search_contact', 'search_contact', $p_email);
+		if(count($contacts)) {
+			$c_ids = array();
+			foreach($contacts as $person) {
+				$c_ids[] = $person->get('c_id');
+			}
+			$filters['p_email'] = new Intra_Filter();
+			$filters['p_email']->whereIn('c_id', $c_ids);
+		}
+	} elseif($scopes[$scope]) {
+		$filters[$scope] = new Intra_Filter();
+		$preg = preg_quote($term).'\s*';
+
+		switch($scope) {
+			case 'email' :
+				$searchKey = 'c_email';
+				break;
+			default:
+				$searchKey = $scope;
+				break;
+		}
+		$filters[$scope]->whereRegexp($searchKey, $preg);
+	}
+
+	// Add advanced stuff
+	if($countries) {
+		foreach(array_keys($filters) as $f) {
+			$filters[$f]->andWhereIn('c_country',$countries);
+		}
+	}
+	if($tax) {
+		foreach(array_keys($filters) as $f) {
+			$filters[$f]->andWhereRecordlist('c_class', explode(',', $tax));
+		}
+	}
+
+	foreach($filters as $filter) {
+		if(count($results))
+			$filter->andWhereNotIn('c_id', array_keys($results));
+
+		foreach(Company::load($filter) as $company) {
+
+			if(!$company->get('loadedFromDb')) continue;
+			$results[$company->get('c_id')] = $company;
+		}
+	}
+
+	return $results;
+}
+
+/**
+ * Return scores for results.
+ */
+
+/**
+ * Return scores for results.
+ */
+function intra_search_company_search_score(array $results, $keywords, $scope) {
+	return _intra_search_api_search_score($results, $keywords, $scope, 'company_ranking');
+}
+
+
+/**
+ * Calculate ranking by differencing recent activity
+ * @todo: use history api
+ */
+function intra_search_company_rank_recent($results, $keywords) {
+	return array();
+}
+
+function intra_search_company_rank_value($results, $keywords) {
+	$keys = implode(',', array_keys($results));
+	$sql = "
+		SELECT `c_id`, SUM(in_fee) AS income
+		FROM Invoice
+		WHERE
+			in_invoice_date > DATE_SUB(NOW(), INTERVAL 1 YEAR)
+			AND c_id IN($keys)
+		GROUP BY `c_id`";
+	$res = Company::db()->query($sql);
+
+	$money = array();
+
+	foreach(array_keys($results) as $id) {
+		$money[$id] = 0;
+	}
+
+	while(list($c_id, $income) = $res->fetchRow()) {
+		$money[$c_id] = $income;
+	}
+	return _intra_search_api_scale_rank($money, false);
+}
+
+/**
+ * Add ranking for own prospects.
+ * @param $results Array
+ * @param $keywords Ignored
+ */
+function intra_search_company_rank_prospect($results, $keywords) {
+
+	$me = intra_api_currentuser()->get('p_id');
+	$my = intra_api_currentuser()->get('c_id');
+
+	$r = array();
+
+	foreach($results as $id => $company) {
+		$score = 0.0;
+		$by = $company->get('prospect_by');
+		$of = $company->get('prospect_of');
+
+		// Is customer by me
+		if($by) {
+			try {
+				if($by == $me) {
+					$score += 0.33;
+				}
+				// Is customer by person on same company
+				elseif(Person::load($by)->get('c_id') == $my) {
+					$score += 0.165;
+				}
+			} catch(UnexpectedValueException $e) {}
+		}
+
+		// Is customer of me
+		if($of) {
+			try {
+				if($of == $me) {
+					$score += 0.64;
+				}
+				// Is customer of my company
+				elseif(Person::load($of)->get('c_id') == $my) {
+					$score += 0.32;
+				}
+			} catch(UnexpectedValueException $e) {}
+		}
+		$r[$id] = $score;
+	}
+
+	return $r;
+}
+
+/**
+ * Use votingapi to retrieve company prefereability.
+ * @param $results Array
+ * @param $keywords Ignored
+ */
+function intra_search_company_rank_searchvote($results, $keywords) {
+	$votes = array();
+	foreach($results as $id => $company) {
+		$votes[$id] = intra_company_get_votes($company);
+	}
+
+	$r = _intra_search_api_scale_rank($votes, false);
+
+	return $r;
+}

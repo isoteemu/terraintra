@@ -1,0 +1,36 @@
+.contact-details-damp {
+	width:50%;
+	float:left;
+}
+
+.contact-details-tel {
+	width:50%;
+	float:left;
+}
+
+
+.contact-details-addr {
+	margin-top:0.6em;
+	width:50%;
+	float:left;
+}
+
+.vcard.person.details > fieldset > .View-Image-Container {
+	margin-right:1.2em
+}
+
+.vcard.person .contact-details-damp .email-list .email:not(.pref)  {
+	font-size:80%;
+}
+
+.vcard.person .contact-details-damp .email-list .email.pref {
+	font-style:normal;
+}
+
+/**
+ * jQuery UI modifications
+ */
+
+.ui-tabs .ui-widget-content legend {
+	display:none;
+}

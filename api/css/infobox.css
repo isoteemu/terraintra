@@ -1,0 +1,40 @@
+.qtip-intra .qtip-wrapper, .qtip-intra .qtip-contentWrapper {
+	overflow:visible !important;
+}
+
+.infobox {
+	font-size:smaller;
+}
+
+.infobox fieldset {
+	margin:0;
+	padding: 0.6em;
+	border-bottom: none 0;
+	border-left: none 0;
+	border-right: none 0;
+
+}
+
+.infobox fieldset.details {
+	border-top: none 0;
+}
+
+.infobox fieldset > legend {
+	line-height:1em;
+}
+
+.infobox .details dt {
+	display:none;
+}
+
+.infobox .details dd {
+	clear:left;
+}
+
+.infobox-section ul {
+	max-height:20em;
+	overflow-y:auto;
+}
+.infobox-section li {
+	line-height:120%;
+}

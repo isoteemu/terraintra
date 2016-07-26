@@ -1,0 +1,344 @@
+<?php
+/**
+ * @file
+ * Activity module.
+ * Current way of handling activities are a bit hack'ish,
+ * and should be updated later on to use database and manager
+ * interfaces.
+ */
+
+function intra_activity_menu() {
+
+	$items = array();
+
+	$items['admin/settings/intra/activity'] = array(
+		'title'				=> t('Activities'),
+		'description'		=> 'Intra API Activities',
+		'file'				=> 'inc/admin.pages.inc',
+		'page callback'		=> 'drupal_get_form',
+		'page arguments'	=> array('intra_activity_admin_settings'),
+		'access arguments'	=> array('administer site configuration'),
+		'type'				=> MENU_LOCAL_TASK,
+	);
+
+	$items['intra/company/%intra_company/activity'] = array(
+		'title'				=> t('Activities'),
+		'access callback'	=> true,
+		'description'		=> 'Activities related to company contacts',
+		'file'				=> 'inc/pages.inc',
+		'page callback'		=> 'intra_activity_page_company',
+		'page arguments'	=> array(2),
+		'type'				=> MENU_LOCAL_TASK,
+		'menu_name'			=> 'intra'
+	);
+
+	return $items;
+}
+
+
+function intra_activity_init() {
+	intra_activity_init_includepath();
+}
+
+/**
+ * Set include path for Intra librarys.
+ */
+function intra_activity_init_includepath() {
+	static $toggle = false;
+
+	if(!$toggle) {
+		$toggle = true;
+		// Set include path
+		set_include_path(
+			dirname(__FILE__).'/lib'
+			.PATH_SEPARATOR.get_include_path()
+			.PATH_SEPARATOR.dirname(__FILE__).'/external/Pear'
+		);
+	}
+}
+
+/**
+ * Hook for displaying own activity in block.
+ * @see http://api.drupal.org/api/function/hook_block/6
+ */
+function intra_activity_block($op = 'list', $delta = 0, $edit = array()) {
+	switch($op) {
+		case 'list' :
+			$blocks = array();
+
+			$blocks[0] = array(
+				'info' => t('TerraINTRA latest activities'),
+				'custom' => 1,
+				'visibility' => 1,
+				'pages' => '<front>',
+				'region' => 'content',
+				'cache' => BLOCK_NO_CACHE
+			);
+
+			return $blocks;
+
+		case 'configure' :
+
+			$limit = variable_get('intra_activity_limit_tooltip', 8);
+			$limit = variable_get('intra_activity_limit_block', $limit);
+
+			$options = range(0, ($limit+10));
+			$options = drupal_map_assoc($options);
+
+			$form['intra_activity_limit_block'] = array(
+				'#type' => 'select',
+				'#title' => t('Activity limit'),
+				'#description' => t('How many last activities are shown'),
+				'#options' => $options,
+				'#default_value' => $limit,
+			);
+			return $form;
+
+		case 'save' :
+			variable_set('intra_activity_limit_block', $edit['intra_activity_limit_block']);
+			break;
+
+		case 'view' :
+			// if($delta == 0) { ... }
+
+			$path = drupal_get_path('module', 'intra_activity');
+			drupal_add_css($path.'/css/activity.css');
+			drupal_add_css($path.'/css/block.css');
+			$me = intra_api_currentuser();
+
+			$limit = variable_get('intra_activity_limit_tooltip', 8);
+			$limit = variable_get('intra_activity_limit_block', $limit);
+
+			$activity = intra_activity($me);
+			$activity = array_slice($activity, 0, $limit);
+
+			$block = array(
+				'subject' => t('Activity'),
+				'content' => theme('intra_activity_list', $activity)
+			);
+			return $block;
+	}
+}
+
+/**
+ * Get contact activity.
+ * @param Contacts Array
+ *   Contacts to retrieve activity for.
+ *   Can be as single instance of Person, or array.
+ * @return Array
+ *   Activity, sorted by ascending time.
+ */
+function intra_activity($contacts) {
+
+	if($contacts instanceof Company) {
+		$contacts = $contacts->people()->getChildren();
+	} elseif(!is_array($contacts)) {
+		if(!($contacts instanceof Person))
+			throw new UnexpectedValueException('First argument is not undestandable type');
+		$contacts = array($contacts);
+	}
+
+	// Access check
+	$me = intra_api_currentuser();
+	foreach($contacts as $key => $person) {
+		if($me->get('p_id') != $person->get('p_id') && $me->get('c_id') == $person->get('c_id')) {
+			unset($contacts[$key]);
+		}
+	}
+
+	if(!count($contacts))
+		return array();
+
+	$limit = variable_get('intra_activity_limit', 20);
+	$providers = module_invoke_all('intra_activity_info');
+	$activity = array();
+
+	foreach(array_keys($providers) as $key => $trigger) {
+		if(!variable_get('intra_activity_provider_'.$trigger.'_enabled', true))
+			continue;
+
+		foreach($contacts as $person) {
+
+			$r = module_invoke_all('intra_activity', 'load', $trigger, $person);
+
+			$r = array_slice($r, 0, $limit);
+			if(count($r)) {
+				$activity = array_merge($activity, $r);
+			}
+		}
+	}
+
+	usort($activity, '_intra_activity_sort');
+	$activity = array_slice($activity, 0, $limit);
+
+	return $activity;
+}
+
+/**
+ * Sorting function.
+ * Uses event time to return order of two events.
+ */
+function _intra_activity_sort(Intra_Activity_Event $a, Intra_Activity_Event $b) {
+	$aTime = $a->getDate();
+	$bTime = $b->getDate();
+
+	if ($a == $b)
+		return 0;
+
+	return ($aTime > $bTime) ? -1 : 1;
+}
+
+
+/**
+ * Hook for registering handled activities.
+ * @see intra_activity()
+ */
+function intra_activity_intra_activity_info() {
+
+	include_once('inc/amavisd.inc');
+	include_once('inc/action_table.inc');
+	include_once('inc/webform.inc');
+	include_once('inc/lataus20.inc');
+	include_once('inc/offers.inc');
+
+	return array(
+		'amavisd' => array(
+			'label' => 'Email exchage',
+			'description' => 'Email exchage, retrieved from spam filter penpal table.',
+		),
+		'action_table' => array(
+			'label' => 'Legacy Intra Actions',
+			'description' => 'Retrieve intra actions from old intra database table'
+		),
+		'webform' => array(
+			'label' => 'Webform',
+			'description' => 'Fetch registrations from webform table by using email'
+		),
+		'lataus20' => array(
+			'label' => 'Downloaded apps',
+			'description' => 'Recently performed downloads.'
+		),
+		'offers' => array(
+			'label' => 'Offers',
+			'description' => 'Offers made from price calculator.'
+		),
+	);
+}
+
+/**
+ * Callback for intra_activity
+ */
+function intra_activity_intra_activity($op, $type, $contact) {
+
+	if($type == 'amavisd') {
+		return _intra_activity_amavisd($contact);
+	} elseif($type == 'action_table') {
+		return _intra_activity_actiontable($contact);
+	} elseif($type == 'webform') {
+		return _intra_activity_webform($contact);
+	} elseif($type == 'lataus20') {
+		return _intra_activity_lataus20($contact);
+	} elseif($type == 'offers') {
+		return _intra_activity_offers($contact);
+	}
+	return array();
+}
+
+
+function &_intra_activity_email_idx($email) {
+	static $people = array();
+
+	$email = strtolower($email);
+
+	if(!isset($people[$email])) {
+		$person = Person::load(array('%p_email' => $email))->current();
+		if($person) {
+			$people[$email] = $person;
+		} else {
+			// Try using secondary addresses. 
+			$_email = Person_Email::load(array('%pe_email' => $email))->current();
+			if($_email) {
+				$people[$email] = Person::load($_email->get('p_id'));
+			} else {
+				$people[$email] = false;
+			}
+		}
+	}
+
+	return $people[$email];
+}
+
+
+
+function template_preprocess_intra_activity_list(&$variables) {
+
+}
+
+function template_preprocess_intra_activity_list_item(&$variables) {
+	if($uid = $variables['event']->getContact()) {
+		$person = Person::load($uid);
+		$variables['view'] = intra_api_view($person);
+	}
+}
+
+function template_preprocess_intra_activity_events(&$variables) {
+	drupal_add_css(drupal_get_path('module', 'intra_activity').'/css/activity.css');
+}
+
+function template_preprocess_intra_activity_event(&$variables) {
+	$variables['direction'] = $variables['event']->getDirection();
+
+	$variables['title'] = filter_xss_admin($variables['event']->getTitle());
+	if($variables['event'] instanceOf Intra_Activity_TypedEvent) {
+		$type = $variables['event']->getType();
+		$format = variable_get("intra_activity_provider_{$type}_format", FILTER_FORMAT_DEFAULT);
+		$variables['body'] = check_markup($variables['event']->getBody(), $format, false);
+	} else {
+		$variables['body'] = check_markup($variables['event']->getBody(), FILTER_FORMAT_DEFAULT, false);
+	}
+}
+
+function template_preprocess_intra_activity_event_contact(&$variables) {
+	$variables['contact'] = Person::load($variables['event']->getContact());
+	$variables['view'] = intra_api_view($variables['contact']);
+}
+
+function intra_activity_theme() {
+	if(!class_exists(Intra_Activity_Event)) {
+		intra_activity_init_includepath();
+		include_once('Intra/Activity/Event.php');
+	}
+
+	return array(
+		'intra_activity_tags' => array(
+			'arguments' => array('tags' => null),
+			'file' => 'inc/pages.inc',
+		),
+		'intra_activity_list' => array(
+			'arguments' => array('events' => null),
+			'template' => 'intra_activity_list'
+		),
+		'intra_activity_list_item' => array(
+			'arguments' => array('event' => null),
+			'template' => 'intra_activity_list_item'
+		),
+
+		'intra_activity_events' => array(
+			'arguments' => array('events' => null),
+			'template' => 'intra_activity_events'
+		),
+		'intra_activity_event' => array(
+			'arguments' => array('event' => null),
+			'template' => 'intra_activity_event'
+		),
+		'intra_activity_event_contact' => array(
+			'arguments' => array('event' => null, 'direction' => Intra_Activity_Event::EVENT_TO),
+			'template' => 'intra_activity_event_contact'
+		),
+		'intra_activity_event_info' => array(
+			'arguments' => array('event' => null),
+			'template' => 'intra_activity_event_info'
+		),
+
+	);
+}

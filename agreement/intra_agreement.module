@@ -1,0 +1,47 @@
+<?php
+
+function intra_agreement_menu() {
+	$menu = array();
+	return $menu;
+} 
+
+
+function intra_agreement_init() {
+	// Set include path
+	set_include_path(
+		dirname(__FILE__).'/lib'
+		.PATH_SEPARATOR.get_include_path()
+	);
+	drupal_add_css(drupal_get_path('module', 'intra_agreement').'/css/agreement.css');
+}
+
+function intra_agreement_theme() {
+	return array(
+		'intra_agreement_details_lite' => array(
+			'arguments' => array('agreement' => null),
+			'file' => 'inc/intra_agreement.pages.inc',
+			'template' => 'details-lite'
+		)
+	);
+}
+
+function intra_agreement_intra_company_infobox($company) {
+	$sections = array();
+	$ag = Agreement::load(array('se_c_id' => $company->get('c_id')))->current();
+	if($ag) {
+
+		drupal_add_css(drupal_get_path('module', 'intra_agreement').'/css/agreement.css');
+
+		$title = l(
+			t('Maintenance agreement'),
+			intra_api_url($ag)
+		);
+		$sections['agreement'] = array(
+			'#title' => $title,
+			'#value' => theme('intra_agreement_details_lite', $ag)
+		);
+	}
+
+	return $sections;
+}
+

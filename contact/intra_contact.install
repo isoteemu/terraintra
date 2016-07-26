@@ -1,0 +1,79 @@
+<?php
+function intra_contact_updateinit() {
+	static $init = false;
+	if($init) return true;
+	$init = true;
+
+	module_load_include('inc', 'intra_api', 'inc/init');
+
+	intra_api_init_includepath();
+	intra_api_init_autoloader();
+	intra_api_init_database();
+}
+/**
+ * update hook for adding visible field.
+ */
+function intra_contact_update_1() {
+	intra_contact_updateinit();
+
+	$db =& Person::db();
+	$db->beginTransaction();
+
+	$db->query('ALTER TABLE `Person` ADD `visible` TINYINT( 1 ) NOT NULL DEFAULT 1');
+	$db->query('ALTER TABLE `Person` ADD INDEX ( `visible` )');
+
+	$db->commit();
+	return array();
+}
+
+function intra_contact_update_2() {
+	intra_contact_updateinit();
+
+	$db =& Person::db();
+	$db->beginTransaction();
+
+	$db->query("CREATE TABLE `Person_email` (
+			`PE_ID` INT UNSIGNED NOT NULL ,
+			`P_ID` INT NOT NULL ,
+			`PE_EMAIL` VARCHAR( 255 )  UNIQUE NOT NULL,
+			`PE_OPTOUT` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0',
+			`PE_DEAD` TINYINT( 1 ) UNSIGNED NOT NULL DEFAULT '0',
+			PRIMARY KEY ( `PE_ID` ) ,
+			INDEX ( `P_ID` , `PE_EMAIL` )
+		) ENGINE = INNODB CHARACTER SET utf8 COLLATE utf8_general_ci
+	");
+
+	$db->query("ALTER TABLE `Person_email` ADD FOREIGN KEY ( `P_ID` ) REFERENCES `Person` (
+			`P_ID`
+		) ON DELETE CASCADE;
+	");
+
+	$db->commit();
+	return array();
+}
+
+function intra_contact_update_3() {
+	intra_contact_updateinit();
+
+	$db =& Person::db();
+	$db->beginTransaction();
+	$db->query('ALTER TABLE `Person` ADD `P_SKYPE` VARCHAR( 255 ) NULL  AFTER `P_EMAIL`');
+	
+	$db->commit();
+	return array();
+}
+
+/*
+function intra_contact_update_4() {
+	intra_contact_updateinit();
+
+	$db =& Person::db();
+	$db->beginTransaction();
+
+	$db->query("INSERT INTO Person_email (`p_id`, `pe_email`) (SELECT `p_id`, `p_email` AS pe_email FROM `Person` LEFT JOIN Person_email USING(p_id) WHERE p_email != '' AND p_email IS NOT NULL AND `pe_id` IS NULL)");
+
+	$db->commit();
+	return array();
+
+}
+*/
