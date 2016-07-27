@@ -1,0 +1,203 @@
+#invoicefactory {
+	background: url('/themes/terra/images/draft.png') repeat;
+}
+
+#invoicefactory fieldset {
+	-moz-border-radius: 0.3em;
+	-webkit-border-radius: 0.3em;
+	border-radius: 0.3em;
+
+	border-color: #51656F;
+}
+
+#invoicefactory .block {
+	font-weight:bold;
+	text-align:right;
+	border-top:none;
+	border-left:none;
+	border-bottom:none;
+	border-right:inherit;
+}
+#invoicefactory .block:after {
+	content: ":";
+}
+
+#invoice-header .vat {
+	display:inline;
+	float:right;
+	padding-top:10px;
+}
+
+#invoicefactory table td {
+	padding:0.1em 0.4em 0.1em 0.4em;
+}
+
+#invoice-header .adr .street-address:after {
+	content: ", ";
+}
+
+#invoice-header .adr .locality:after {
+	content: ", ";
+}
+
+#invoice-billing input, #invoice-info input, #invoice-billing select, #invoice-info select {
+	width:95%;
+}
+
+#invoicefactory .title {
+	font-size:inherit;
+}
+
+#invoicefactory input.form-text.jscalendar {
+	margin:inherit;
+}
+#invoicefactory div.form-item.jscalendar {
+	width:inherit;
+}
+
+#invoicefactory input.change-company {
+	width:16px;
+}
+
+/** Bundle calculator sets as inline **/
+fieldset div {
+	display:block;
+}
+
+/**
+ * Product listing
+ */
+
+.product-listing {
+	width:100%;
+}
+
+.product-listing .money {
+	float:right;
+}
+
+/**
+ * Listview
+ */
+
+#invoicefactory #listview {
+	display:none;
+	padding:0;
+	margin:0;
+	border:none;
+}
+
+#invoicefactory #listview .titleBar {
+	display:none;
+}
+
+/**/
+
+.invoice-notes {
+	clear:both;
+	padding-left:3em;
+	padding-top:1em;
+	padding-bottom:1em;
+	width:49%;
+}
+
+.total-price {
+	font-family: "Courier New", Monospace;
+	font-size: 1.8em;
+	clear:both;
+	font-weight:bold;
+}
+
+.invoice-due {
+	margin-top:-0.3em;
+	clear:both;
+	font-size: 0.9em;
+}
+
+#invoicefactory .product-listing .product-serial {
+	clear:both;
+	display:block;
+	border:none;
+
+}
+
+.product-listing th:after {
+	content:":";
+}
+
+.product-listing .invoice-item-header {
+	text-decoration:underline;
+}
+.product-listing .invoice-item-header:after {
+	content:":";
+}
+
+.product-listing .serials {
+	vertical-align:bottom;
+}
+
+#invoicefactory .product-listing .subtotal {
+	text-align:right;
+	font-weight:bold;
+}
+#invoicefactory .product-listing .subtotal:after {
+	content:":";
+}
+
+.company-select {
+	width:100%;
+}
+
+.select-listview, .select-listview:hover {
+	text-decoration:none;
+}
+
+input.login-box-submit {
+	height:36px;
+	background-image: url('../../images/dialog-ok-apply-32.png');
+	background-position: 8px center;
+	background-repeat: no-repeat;
+	text-align:left;
+	padding-left: 38px;
+}
+
+input.pdfViewer {
+	height:26px;
+	background-image: url('../../images/application-pdf.png');
+	background-position: 2px center;
+	background-repeat: no-repeat;
+	text-align:left;
+	padding-left: 38px;
+}
+
+.box-inline input {
+	width:100%;
+}
+
+@media print {
+
+	#invoicefactory fieldset {
+		-moz-border-radius: 0.3em;
+		border-color: #E8E8E8;
+		background-color: #E8E8E8;
+	}
+	#invoicefactory legend:after {
+		content: ":";
+	}
+
+	#invoicefactory select {
+		padding:0;
+	}
+
+	#invoicefactory .block {
+		border-top:none;
+		border-left:none;
+		border-bottom:none;
+		border-right:1px solid #000;
+	}
+
+	body, a, td, th, textarea, select, input {
+		font-size:.9em;
+	}
+
+}

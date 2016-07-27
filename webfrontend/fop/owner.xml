@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<owner>
+	<company id="">
+		<id></id>
+		<cname></cname>
+		<street></street>
+		<zip></zip>
+		<city></city>
+		<country></country>
+		<email></email>
+		<phone></phone>
+		<telefax></telefax>
+		<url></url>
+		<vat></vat>
+		<class></class>
+	</company>
+	<person>
+		<id></id>
+		<c_id></c_id>
+		<fname></fname>
+		<lname></lname>
+		<street></street>
+		<zip></zip>
+		<city></city>
+		<country></country>
+		<email></email>
+		<phone></phone>
+		<telefax></telefax>
+		<class></class>
+		<class></class>
+		<class></class>
+		<class></class>
+		<class></class>
+		<rem>
+			<line></line>
+			<line></line>
+		</rem>
+		<type></type>
+		<login></login>
+	</person>
+</owner>

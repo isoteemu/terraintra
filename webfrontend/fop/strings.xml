@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<strings>
+	<str xml:lang="en" name="Invoice">Invoice</str>
+	<str xml:lang="fi" name="Invoice">Lasku</str>
+
+	<str xml:lang="en" name="Order details">Order details</str>
+	<str xml:lang="fi" name="Order details">Tilauksen tiedot</str>
+
+	<str xml:lang="en" name="Maintenance Agreement">Maintenance Agreement</str>
+	<str xml:lang="fi" name="Maintenance Agreement">Ylläpitosopimus</str>
+
+	<str xml:lang="fi" name="Customer">Asiakas</str>
+	<str xml:lang="fi" name="Purchase Order">Tilausnumero</str>
+	<str xml:lang="fi" name="Order Date">Tilaus</str>
+	<str xml:lang="fi" name="Contact">Kontakti</str>
+	<str xml:lang="fi" name="Vat ID">Y-Tunnus</str>
+	<str xml:lang="fi" name="Customer">Asiakas</str>
+</strings>
