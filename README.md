@@ -21,18 +21,23 @@ Features included were:
 
 ### Drupal modules
 
-* `activity` –  Module for displaying customer related activities.
-* `agreement` – Maintenance agreement. Very special case for software license maintenance.
-* `api` – Base package.
- * `lib` - Contains custom ORM, API and model/view stuff.
- * `doc` – Doxygen file
-* `company` - Handles companies
-* `contact` - Handles persons.
-* `invoice` - For invoice display.
-* `menu` - Menu connector for old ASP interface.
-* `search` – Search modules.
+* `activity/` –  Module for displaying customer related activities.
+* `agreement/` – Maintenance agreement. Very special case for software license maintenance.
+* `api/` – Base package.
+ * `lib/` - Contains custom ORM, API and model/view stuff.
+* `company/` - Handles companies
+* `contact/` - Handles persons.
+* `invoice/` - For invoice display.
+* `menu/` - Menu connector for old ASP interface.
+* `search/` – Search modules.
 
 ### Other files
 
 * `terraintra manual.pdf` – User manual.
-* `terraintra-contact-0.1.3.1` – Thunderbird extension.
+* `terraintra-contact-0.1.3.1/` – Thunderbird extension.
+* `webfrontend/` – Compatibility and other files for public website.
+ * `drupal.inc.php` – Compatibility functions from Drupal.
+ * `intra.functions.inc.php` – Functions for distributor PO/invoicing system.
+ * `invoicefactory.inc.php` – Drupal 4.7 module for invoice creation.
+ * `price_calculator.class.inc.ph` – Functions for creating software bundles.
+ * `fop/` – Apache FOP stylesheets for invoice creation.
